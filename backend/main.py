@@ -1,37 +1,47 @@
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="FastAPI + React")
+from database import create_db_and_tables
+from routers.print_requests import router as print_requests_router
 
 
-@app.get("/api/health")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+
+app = FastAPI(
+    title="PrintPoint API",
+    description="Campus Printing Management System REST API",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS — allow Vite dev server and Vercel frontend
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(print_requests_router)
+
+
+@app.get("/api/health", tags=["health"])
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "service": "PrintPoint API"}
 
 
-@app.get("/api/hello")
-def hello(name: str = "World") -> dict[str, str]:
-    return {"message": f"Hello, {name}!"}
-
-
-# EXERCISE (part 1): uncomment to add POST /api/user, then test it at /docs.
-# from pydantic import BaseModel, EmailStr
-#
-#
-# class User(BaseModel):
-#     id: int
-#     name: str
-#     email: EmailStr  # invalid emails get a 422 response automatically
-#
-#
-# @app.post("/api/user")
-# def create_user(user: User) -> dict[str, str]:
-#     return {"message": f"Hello {user.name} (ID {user.id}), we'll email you at {user.email}."}
-
-
+# Serve built frontend in production
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-
-# dist/ only exists after `npm run build`; in dev the Vite server serves the UI.
 if FRONTEND_DIR.is_dir():
-    app.frontend("/", directory=FRONTEND_DIR)
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
