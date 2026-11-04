@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
 from sqlmodel.pool import StaticPool
+import models  # Ensures SQLModel metadata knows about PrintRequest table
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite://"
@@ -29,8 +30,8 @@ def client_fixture(session):
         yield session
 
     app.dependency_overrides[get_session] = override_get_session
-    client = TestClient(app)
-    yield client
+    with TestClient(app, raise_server_exceptions=True) as client:
+        yield client
     app.dependency_overrides.clear()
 
 
