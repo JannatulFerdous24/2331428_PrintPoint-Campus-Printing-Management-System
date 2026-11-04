@@ -1,0 +1,159 @@
+{
+  "info": {
+    "_postman_id": "b3e0c3a2-9b5a-4b9e-95d1-e63d3e75e9b1",
+    "name": "PrintPoint API — Mid Assessment Collection",
+    "description": "Postman Collection for PrintPoint Campus Printing Management System Mid Project Assessment demonstration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Verifies that the FastAPI backend service is operational."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Create Print Request (POST)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_name\": \"Jannatul Ferdous Suzane\",\n  \"document_name\": \"CSE315_Final_Report.pdf\",\n  \"copies\": 2,\n  \"print_type\": \"Color\",\n  \"notes\": \"Spiral bound please\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests"]
+        },
+        "description": "Creates a new print request in Pending status. Returns 201 Created with auto-generated ID."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Read List of Requests (GET All)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests"],
+          "query": [
+            {
+              "key": "status",
+              "value": "Pending",
+              "disabled": true
+            },
+            {
+              "key": "skip",
+              "value": "0",
+              "disabled": true
+            },
+            {
+              "key": "limit",
+              "value": "100",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Retrieves the full list of print requests stored in the database. Supports optional query filters."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Read Single Request by ID (GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests", "1"]
+        },
+        "description": "Retrieves full metadata for a specific request. Returns 404 if not found."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Update Request (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"copies\": 5,\n  \"status\": \"Processing\",\n  \"notes\": \"Updated notes\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests", "1"]
+        },
+        "description": "Updates request fields and enforces valid status transitions (Pending -> Processing -> Ready -> Collected). Returns 422 on illegal transition."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Delete Request (DELETE)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests", "1"]
+        },
+        "description": "Deletes a request permanently from the database. Returns 204 No Content."
+      },
+      "response": []
+    },
+    {
+      "name": "7. Validation Test - Invalid Copies (POST 422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_name\": \"Test Student\",\n  \"document_name\": \"bad.pdf\",\n  \"copies\": 0,\n  \"print_type\": \"Black & White\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/print-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "print-requests"]
+        },
+        "description": "Tests rejection of invalid copy count (0). Demonstrates automated 422 Unprocessable Entity response."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ]
+}
