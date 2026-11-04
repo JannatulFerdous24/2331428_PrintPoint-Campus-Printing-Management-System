@@ -20,9 +20,12 @@ app = FastAPI(
     description="Campus Printing Management System REST API",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
-# CORS — allow Vite dev server and Vercel frontend
+# CORS - allow Vite dev server and Vercel frontend
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
