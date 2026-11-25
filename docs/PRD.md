@@ -88,7 +88,7 @@ The purpose of PrintPoint is to reduce friction, errors, and wait times in the c
 
 - **Print request submission** — students submit a new request via a web form.
 - **Print request CRUD** — full Create, Read (list and single), Update, Delete operations exposed via REST API and consumed by the frontend.
-- **Status tracking** — requests move through a defined status workflow: `Pending → Processing → Ready → Collected / Rejected`.
+- **Status tracking** — requests move through a defined status workflow: `Pending → Processing → Ready → Collected`, or `Pending → Rejected`.
 - **Document name storage** — the document name is stored as a plain-text field (no file upload in MVP).
 - **Request detail view** — any user can view the full details of a single print request.
 - **Basic form validation** — required fields enforced on the frontend and backend.
@@ -130,7 +130,7 @@ The purpose of PrintPoint is to reduce friction, errors, and wait times in the c
 3. Staff updates the request status to `Processing`.
 4. When printing is complete and the job is ready for collection, staff updates status to `Ready`.
 5. When the student arrives to collect, staff marks the request `Collected`.
-6. If the job cannot be completed (missing file, insufficient credit, unreadable document), staff marks it `Rejected` and adds a note explaining the reason.
+6. If the job cannot be completed (missing file, insufficient credit, unreadable document), staff marks it `Rejected` while it is still `Pending` and must enter a reason, which the student can see.
 
 ---
 
@@ -159,7 +159,7 @@ The purpose of PrintPoint is to reduce friction, errors, and wait times in the c
 | FR-04 | The system shall return the full details of a single print request by its ID. | High |
 | FR-05 | The system shall allow partial or full update of a print request (PATCH semantics). | High |
 | FR-06 | The system shall allow deletion of a print request by ID, returning 204 No Content on success. | High |
-| FR-07 | The system shall enforce a status workflow: only valid transitions are permitted (`Pending → Processing`, `Processing → Ready`, `Ready → Collected`, `* → Rejected`). | Medium |
+| FR-07 | The system shall enforce a status workflow: only valid transitions are permitted (`Pending → Processing`, `Processing → Ready`, `Ready → Collected`, `Pending → Rejected` with a mandatory reason). | Medium |
 | FR-08 | The system shall record an `updated_at` timestamp whenever a print request is modified. | Medium |
 
 ### 8.2 User Interface

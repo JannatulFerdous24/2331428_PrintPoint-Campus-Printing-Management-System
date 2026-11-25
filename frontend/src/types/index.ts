@@ -12,11 +12,12 @@ export const REQUEST_STATUSES: RequestStatus[] = [
   "Rejected",
 ]
 
-// Valid transitions (frontend validation mirror)
+// Valid transitions (mirror of backend/models.py; the server enforces them):
+//   Pending -> Processing -> Ready -> Collected      Pending -> Rejected
 export const VALID_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   Pending: ["Processing", "Rejected"],
-  Processing: ["Ready", "Rejected"],
-  Ready: ["Collected", "Rejected"],
+  Processing: ["Ready"],
+  Ready: ["Collected"],
   Collected: [],
   Rejected: [],
 }
@@ -31,6 +32,27 @@ export interface PrintRequest {
   notes: string | null
   created_at: string
   updated_at: string
+  owner_id?: number | null
+  group_id?: number | null
+  assignee_id?: number | null
+  /** Why staff rejected the request; null unless status is Rejected. */
+  rejection_reason?: string | null
+  /** Uploaded document metadata (the private storage key is never sent to the browser). */
+  has_document?: boolean
+  original_filename?: string | null
+  content_type?: string | null
+  file_size_bytes?: number | null
+  uploaded_at?: string | null
+  /** What the current user may do, computed by the server (backend/rbac.py). */
+  permissions?: RequestPermissions
+}
+
+export interface RequestPermissions {
+  view: boolean
+  edit: boolean
+  delete: boolean
+  change_status: boolean
+  assign: boolean
 }
 
 export interface CreatePrintRequestData {
@@ -39,6 +61,7 @@ export interface CreatePrintRequestData {
   copies: number
   print_type: PrintType
   notes?: string
+  group_id?: number
 }
 
 export interface UpdatePrintRequestData {
@@ -48,4 +71,103 @@ export interface UpdatePrintRequestData {
   print_type?: PrintType
   status?: RequestStatus
   notes?: string
+  /** Staff note for a status change; required (5-500 characters) when rejecting. */
+  reason?: string
 }
+
+export const MIN_REJECTION_REASON = 5
+
+// ---------------------------------------------------------------------------
+// Authentication
+// ---------------------------------------------------------------------------
+
+/** Stored roles. Shown to people as "Student" and "Print-Shop Staff (Admin)". */
+export type UserRole = "user" | "admin"
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  user: "Student",
+  admin: "Print-Shop Staff (Admin)",
+}
+
+export interface User {
+  id: number
+  email: string
+  full_name: string
+  role: UserRole
+  created_at: string
+}
+
+export interface AuthResponse {
+  access_token: string
+  token_type: "bearer"
+  expires_in: number
+  user: User
+}
+
+export interface SessionInfo {
+  id: number
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+  last_used_at: string
+  expires_at: string
+  current: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Groups (class / club / student team) and admin
+// ---------------------------------------------------------------------------
+
+export interface GroupPermissions {
+  is_owner: boolean
+  is_member: boolean
+  can_create: boolean
+  can_edit: boolean
+  can_assign: boolean
+  can_manage: boolean
+}
+
+export interface GroupSummary {
+  id: number
+  name: string
+  description: string | null
+  owner_id: number
+  owner_name: string
+  member_count: number
+  created_at: string
+  my_permissions: GroupPermissions
+}
+
+export interface GroupMemberInfo {
+  user_id: number
+  full_name: string
+  email: string
+  is_owner: boolean
+  can_create: boolean
+  can_edit: boolean
+  can_assign: boolean
+  joined_at: string
+}
+
+export interface GroupDetail extends GroupSummary {
+  members: GroupMemberInfo[]
+}
+
+export interface MemberFlags {
+  can_create: boolean
+  can_edit: boolean
+  can_assign: boolean
+}
+
+export interface AdminUser {
+  id: number
+  email: string
+  full_name: string
+  role: UserRole
+  is_banned: boolean
+  ban_reason: string | null
+  banned_at: string | null
+  created_at: string
+}
+
+export * from "./dashboard"

@@ -1,47 +1,45 @@
-import type { CreatePrintRequestData, PrintRequest, UpdatePrintRequestData } from "../types"
+import type {
+  CreatePrintRequestData,
+  DocumentLink,
+  PrintRequest,
+  RequestQuery,
+  StatusHistoryEntry,
+  UpdatePrintRequestData,
+} from "../types"
+import { apiFetch, apiPage, queryString } from "./client"
 
 const BASE = "/api/print-requests"
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`
-    try {
-      const body = await res.json()
-      message = body.detail ?? JSON.stringify(body)
-    } catch {
-      message = res.statusText || message
-    }
-    throw new Error(message)
-  }
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
-}
-
+// Same functions as the Mid Project; they now go through apiFetch, which adds the
+// login token and handles expired tokens and readable error messages.
 export const printRequestsApi = {
   list: (status?: string): Promise<PrintRequest[]> => {
     const url = status ? `${BASE}?status=${encodeURIComponent(status)}` : BASE
-    return fetch(url).then((r) => handleResponse<PrintRequest[]>(r))
+    return apiFetch<PrintRequest[]>(url)
   },
 
-  get: (id: number): Promise<PrintRequest> =>
-    fetch(`${BASE}/${id}`).then((r) => handleResponse<PrintRequest>(r)),
+  /** Search + filters + paging (staff queue). Students only ever get their own/group requests. */
+  query: (params: RequestQuery) => apiPage<PrintRequest>(`${BASE}${queryString({ ...params })}`),
+
+  get: (id: number): Promise<PrintRequest> => apiFetch<PrintRequest>(`${BASE}/${id}`),
+
+  history: (id: number) => apiFetch<StatusHistoryEntry[]>(`${BASE}/${id}/history`),
 
   create: (data: CreatePrintRequestData): Promise<PrintRequest> =>
-    fetch(BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then((r) => handleResponse<PrintRequest>(r)),
+    apiFetch<PrintRequest>(BASE, { method: "POST", body: JSON.stringify(data) }),
 
   update: (id: number, data: UpdatePrintRequestData): Promise<PrintRequest> =>
-    fetch(`${BASE}/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then((r) => handleResponse<PrintRequest>(r)),
+    apiFetch<PrintRequest>(`${BASE}/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
-  delete: (id: number): Promise<void> =>
-    fetch(`${BASE}/${id}`, { method: "DELETE" }).then((r) =>
-      handleResponse<void>(r)
-    ),
+  delete: (id: number): Promise<void> => apiFetch<void>(`${BASE}/${id}`, { method: "DELETE" }),
+
+  /** Upload or replace the PDF/DOCX (multipart; the browser sets the Content-Type). */
+  uploadDocument: (id: number, file: File): Promise<PrintRequest> => {
+    const form = new FormData()
+    form.append("file", file)
+    return apiFetch<PrintRequest>(`${BASE}/${id}/document`, { method: "PUT", body: form })
+  },
+
+  /** Short-lived signed link, issued only after the server checks permission. */
+  documentLink: (id: number) => apiFetch<DocumentLink>(`${BASE}/${id}/document`),
 }

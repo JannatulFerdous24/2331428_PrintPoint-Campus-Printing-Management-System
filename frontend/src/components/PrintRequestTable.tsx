@@ -35,7 +35,7 @@ export function PrintRequestTable({ requests, onView, onEdit, onDelete }: Props)
               <td>{r.student_name}</td>
               <td className="doc-name">{r.document_name}</td>
               <td>{r.copies}</td>
-              <td>{r.print_type}</td>
+              <td>{r.print_type}{r.group_id ? <span className="role-chip">Group</span> : null}</td>
               <td>
                 <StatusBadge status={r.status} />
               </td>
@@ -45,12 +45,17 @@ export function PrintRequestTable({ requests, onView, onEdit, onDelete }: Props)
                   <button className="btn btn-sm btn-info" onClick={() => onView(r.id)}>
                     View
                   </button>
-                  <button className="btn btn-sm btn-primary" onClick={() => onEdit(r.id)}>
-                    Edit
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => onDelete(r.id)}>
-                    Delete
-                  </button>
+                  {/* Buttons follow the server's permissions; the server re-checks every action. */}
+                  {(r.permissions?.edit || r.permissions?.change_status) && (
+                    <button className="btn btn-sm btn-primary" onClick={() => onEdit(r.id)}>
+                      {r.permissions?.edit ? "Edit" : "Update status"}
+                    </button>
+                  )}
+                  {r.permissions?.delete && (
+                    <button className="btn btn-sm btn-danger" onClick={() => onDelete(r.id)}>
+                      Delete
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

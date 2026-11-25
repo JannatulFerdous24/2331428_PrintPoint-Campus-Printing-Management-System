@@ -30,7 +30,7 @@ Detailed project specifications and architectural designs are available in the [
 
 ### Request Status Lifecycle
 Requests advance through an enforced state machine:
-`Pending` ➔ `Processing` ➔ `Ready` ➔ `Collected` (or `Rejected` from any active state).
+`Pending` ➔ `Processing` ➔ `Ready` ➔ `Collected`, or `Pending` ➔ `Rejected` (staff must give a reason, which the student sees). Only staff (admins) change the status.
 
 ---
 
@@ -168,12 +168,55 @@ Open `http://localhost:8000` to use the fully combined production build.
 Create `.env` in the `backend/` directory (see `backend/.env.example`):
 
 ```env
-# Database connection string (defaults to local SQLite if omitted)
-DATABASE_URL=sqlite:///./printpoint.db
+# App database (Supabase transaction pooler, port 6543).
+# Locally you may use SQLite instead: DATABASE_URL=sqlite:///./printpoint.db
+DATABASE_URL=postgresql://postgres.<project-ref>:<your-db-password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+
+# Used only by Alembic migrations (Supabase session pooler, port 5432)
+MIGRATION_DATABASE_URL=postgresql://postgres.<project-ref>:<your-db-password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 
 # Allowed CORS origins (comma-separated)
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
+
+> Never commit `backend/.env`. On Vercel the backend **refuses to start** with SQLite or without `DATABASE_URL`, so production data can never silently land in temporary storage.
+
+### 🗄️ Database Setup (Supabase PostgreSQL)
+
+PrintPoint uses **two separate Supabase projects**, both in region **US East (N. Virginia)** to match the Vercel function region `iad1`:
+
+| Project | Used by |
+|---|---|
+| `printpoint-dev` | local `backend/.env`, Vercel **Preview** |
+| `printpoint-prod` | Vercel **Production** only |
+
+1. Create the project and copy the **Transaction pooler** (port 6543) and **Session pooler** (port 5432) connection strings from *Connect*.
+2. Put them in `backend/.env` as `DATABASE_URL` and `MIGRATION_DATABASE_URL`.
+3. Review the SQL a migration will run (prints only, no connection):
+   ```bash
+   cd backend
+   alembic upgrade head --sql
+   ```
+4. Apply migrations (connects to the database):
+   ```bash
+   alembic upgrade head
+   alembic current        # shows the applied revision
+   ```
+
+**Migrations**
+
+| Revision | What it does |
+|---|---|
+| `0001_create_print_requests` | Mid Project `print_requests` table |
+| `0002_core_security_schema` | Adds `users`, `refresh_sessions`, `login_attempts`, `audit_logs`, `groups`, `group_members`, `print_request_status_history`, and nullable ownership/document columns on `print_requests` (additive only) |
+
+Local development without Supabase uses `backend/printpoint_dev.db` (SQLite, auto-created). The Mid Project's old `printpoint.db` is never opened by the new code.
+
+**Document storage:** uploaded documents will live in a **private** Supabase Storage bucket (`print-documents`). The backend checks permissions and hands out short-lived signed URLs; `SUPABASE_SERVICE_ROLE_KEY` is backend-only and never sent to the browser.
+
+How the connection works: the app uses SQLAlchemy with the `psycopg` driver, `NullPool` (Supabase's pooler does the pooling, which suits Vercel serverless), prepared statements disabled (required by the transaction pooler) and `sslmode=require`. Row Level Security is enabled on every table so Supabase's public Data API cannot access it; the backend connects as the table owner.
+
+Tests never use these settings: `backend/tests/conftest.py` forces an in-memory SQLite database.
 
 For the frontend (optional in `frontend/.env`):
 ```env

@@ -10,6 +10,8 @@ class PrintRequestCreate(BaseModel):
     copies: int = Field(ge=1, le=999)
     print_type: PrintType = PrintType.black_and_white
     notes: Optional[str] = Field(default=None, max_length=1000)
+    # Optional: create the request inside a group (needs can_create in that group).
+    group_id: Optional[int] = None
 
 
 class PrintRequestUpdate(BaseModel):
@@ -19,6 +21,9 @@ class PrintRequestUpdate(BaseModel):
     print_type: Optional[PrintType] = None
     status: Optional[RequestStatus] = None
     notes: Optional[str] = Field(default=None, max_length=1000)
+    # Staff note for a status change, saved in the status history.
+    # REQUIRED (5-500 characters) when the new status is Rejected.
+    reason: Optional[str] = Field(default=None, max_length=500)
 
 
 class PrintRequestRead(BaseModel):
@@ -31,5 +36,42 @@ class PrintRequestRead(BaseModel):
     notes: Optional[str]
     created_at: datetime
     updated_at: datetime
+    # Added in the Final Project (additive - Mid Project fields above are unchanged)
+    owner_id: Optional[int] = None
+    group_id: Optional[int] = None
+    assignee_id: Optional[int] = None
+    # Why staff rejected the request (from the status history); None unless Rejected.
+    rejection_reason: Optional[str] = None
+    # Uploaded document (metadata only - the private storage key is never sent out).
+    has_document: bool = False
+    original_filename: Optional[str] = None
+    content_type: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    uploaded_at: Optional[datetime] = None
+    # What the CURRENT user may do with this request, computed by rbac.py.
+    # The UI uses it to show/hide buttons; the server still checks every action.
+    permissions: Optional[dict[str, bool]] = None
 
     model_config = {"from_attributes": True}
+
+
+class AssigneeUpdate(BaseModel):
+    assignee_id: Optional[int] = None  # None = unassign
+
+
+class StatusHistoryRead(BaseModel):
+    from_status: Optional[RequestStatus]
+    to_status: RequestStatus
+    changed_by_id: Optional[int]
+    changed_by_name: Optional[str] = None
+    note: Optional[str]
+    changed_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentLink(BaseModel):
+    """Short-lived signed link to the private file (issued only after a permission check)."""
+    url: str
+    expires_in: int
+    filename: str

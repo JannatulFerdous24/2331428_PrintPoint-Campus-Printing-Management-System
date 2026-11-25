@@ -31,6 +31,23 @@ def client_fixture(session):
 
     app.dependency_overrides[get_session] = override_get_session
     with TestClient(app, raise_server_exceptions=True) as client:
+        # The print-request API now requires login: sign up a test student and
+        # send its access token with every request. Assertions below are unchanged.
+        res = client.post("/api/auth/signup", json={
+            "email": "student@uni.edu",
+            "full_name": "Test Student",
+            "password": "StudentPass123",
+        })
+        assert res.status_code == 201, res.text
+        # These Mid Project tests also change request status, which is now reserved
+        # for print-shop staff (role `admin`). Promote the test account directly in
+        # the test database. RBAC rules themselves are tested in test_rbac.py.
+        from models import User, UserRole
+        user = session.get(User, res.json()["user"]["id"])
+        user.role = UserRole.admin
+        session.add(user)
+        session.commit()
+        client.headers["Authorization"] = f"Bearer {res.json()['access_token']}"
         yield client
     app.dependency_overrides.clear()
 

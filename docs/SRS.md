@@ -339,10 +339,14 @@ The backend communicates with the database exclusively through SQLModel (which w
 | From Status | Allowed Transitions |
 |---|---|
 | `Pending` | `Processing`, `Rejected` |
-| `Processing` | `Ready`, `Rejected` |
-| `Ready` | `Collected`, `Rejected` |
+| `Processing` | `Ready` |
+| `Ready` | `Collected` |
 | `Collected` | *(terminal — no further transitions)* |
 | `Rejected` | *(terminal — no further transitions)* |
+
+Only staff (role `admin`) may change the status (`403` otherwise). Rejecting requires a
+`reason` of 5–500 characters (`422` otherwise); the reason is stored in the status history
+and shown to the student. A request can only be rejected while it is `Pending`.
 
 ---
 

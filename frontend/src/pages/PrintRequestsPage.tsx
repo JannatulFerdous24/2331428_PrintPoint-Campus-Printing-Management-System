@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react"
+import { groupsApi } from "../api/groups"
+import { errorText } from "../api/client"
 import { printRequestsApi } from "../api/printRequests"
+import { useAuth } from "../auth/AuthContext"
 import { ConfirmDialog } from "../components/ConfirmDialog"
 import { PrintRequestForm } from "../components/PrintRequestForm"
 import { PrintRequestTable } from "../components/PrintRequestTable"
-import type { CreatePrintRequestData, PrintRequest, UpdatePrintRequestData } from "../types"
+import { RequestDetails } from "../components/RequestDetails"
+import type { CreatePrintRequestData, GroupSummary, PrintRequest, UpdatePrintRequestData } from "../types"
 
 type View = "list" | "create" | "edit" | "detail"
 
 export function PrintRequestsPage() {
+  const { user } = useAuth()
+  const isStaff = user?.role === "admin"
+  const [groups, setGroups] = useState<GroupSummary[]>([])
   const [requests, setRequests] = useState<PrintRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -31,6 +38,8 @@ export function PrintRequestsPage() {
 
   useEffect(() => {
     loadRequests()
+    // Groups where I may create requests (for the optional group selector).
+    groupsApi.list().then((gs) => setGroups(gs.filter((g) => g.my_permissions.can_create))).catch(() => setGroups([]))
   }, [])
 
   function showSuccess(msg: string) {
@@ -38,17 +47,32 @@ export function PrintRequestsPage() {
     setTimeout(() => setSuccess(""), 4000)
   }
 
-  async function handleCreate(data: CreatePrintRequestData | UpdatePrintRequestData) {
-    await printRequestsApi.create(data as CreatePrintRequestData)
-    showSuccess("Print request created successfully!")
+  /** Saves the request, then uploads the chosen file. If only the upload fails the request
+   *  still exists (Pending), so the student can open it and upload again. */
+  async function uploadAfterSave(id: number, file: File | null): Promise<boolean> {
+    if (!file) return true
+    try {
+      await printRequestsApi.uploadDocument(id, file)
+      return true
+    } catch (err) {
+      setError(`Request #${id} was saved, but the document upload failed: ${errorText(err)} Open the request and upload it again.`)
+      return false
+    }
+  }
+
+  async function handleCreate(data: CreatePrintRequestData | UpdatePrintRequestData, file: File | null) {
+    const created = await printRequestsApi.create(data as CreatePrintRequestData)
+    const uploaded = await uploadAfterSave(created.id, file)
+    if (uploaded) showSuccess(`Print request #${created.id} submitted successfully!`)
     setView("list")
     loadRequests()
   }
 
-  async function handleUpdate(data: CreatePrintRequestData | UpdatePrintRequestData) {
+  async function handleUpdate(data: CreatePrintRequestData | UpdatePrintRequestData, file: File | null) {
     if (!selected) return
-    await printRequestsApi.update(selected.id, data as UpdatePrintRequestData)
-    showSuccess("Print request updated successfully!")
+    if (Object.keys(data).length > 0) await printRequestsApi.update(selected.id, data as UpdatePrintRequestData)
+    const uploaded = await uploadAfterSave(selected.id, file)
+    if (uploaded) showSuccess("Print request updated successfully!")
     setView("list")
     setSelected(null)
     loadRequests()
@@ -117,7 +141,7 @@ export function PrintRequestsPage() {
       {view === "list" && (
         <>
           <div className="section-header">
-            <h2>Print Requests</h2>
+            <h2>{isStaff ? "All Print Requests (staff view)" : "My Print Requests"}</h2>
             {!loading && (
               <span className="count-badge">{requests.length} total</span>
             )}
@@ -141,7 +165,10 @@ export function PrintRequestsPage() {
           <PrintRequestForm
             onSubmit={handleCreate}
             onCancel={goToList}
-            submitLabel="Create Request"
+            submitLabel="Submit Request"
+            requireFile
+            groups={groups}
+            defaultName={user?.full_name ?? ""}
           />
         </>
       )}
@@ -155,53 +182,36 @@ export function PrintRequestsPage() {
             onCancel={goToList}
             isEdit
             submitLabel="Save Changes"
+            canEditFields={selected.permissions?.edit ?? false}
+            canChangeStatus={selected.permissions?.change_status ?? false}
           />
         </>
       )}
 
       {view === "detail" && selected && (
-        <div className="detail-card">
-          <h2>Request #{selected.id}</h2>
-          <table className="detail-table">
-            <tbody>
-              <tr><td>Student Name</td><td>{selected.student_name}</td></tr>
-              <tr><td>Document Name</td><td>{selected.document_name}</td></tr>
-              <tr><td>Copies</td><td>{selected.copies}</td></tr>
-              <tr><td>Print Type</td><td>{selected.print_type}</td></tr>
-              <tr>
-                <td>Status</td>
-                <td>
-                  <span style={{
-                    backgroundColor: {
-                      Pending: "#f59e0b", Processing: "#3b82f6", Ready: "#10b981",
-                      Collected: "#6b7280", Rejected: "#ef4444"
-                    }[selected.status],
-                    color: "#fff", padding: "2px 10px", borderRadius: "12px",
-                    fontSize: "12px", fontWeight: 600
-                  }}>
-                    {selected.status}
-                  </span>
-                </td>
-              </tr>
-              <tr><td>Notes</td><td>{selected.notes || "—"}</td></tr>
-              <tr><td>Created</td><td>{new Date(selected.created_at).toLocaleString()}</td></tr>
-              <tr><td>Updated</td><td>{new Date(selected.updated_at).toLocaleString()}</td></tr>
-            </tbody>
-          </table>
+        <>
+          <RequestDetails
+            request={selected}
+            onChanged={(updated) => {
+              setSelected(updated)
+              showSuccess(`Request #${updated.id} is now ${updated.status}.`)
+              loadRequests()
+            }}
+          />
           <div className="form-actions" style={{ marginTop: "16px" }}>
-            <button className="btn btn-primary" onClick={() => {
-              setView("edit")
-            }}>
-              Edit
-            </button>
-            <button className="btn btn-danger" onClick={() => {
-              setDeleteId(selected.id)
-              setView("list")
-            }}>
-              Delete
-            </button>
+            {selected.permissions?.edit && (
+              <button className="btn btn-primary" onClick={() => setView("edit")}>Edit</button>
+            )}
+            {selected.permissions?.delete && (
+              <button className="btn btn-danger" onClick={() => {
+                setDeleteId(selected.id)
+                setView("list")
+              }}>
+                Delete
+              </button>
+            )}
           </div>
-        </div>
+        </>
       )}
 
       {deleteId !== null && (

@@ -465,45 +465,40 @@ File upload is **not implemented** in the MVP. The `document_name` field stores 
 ### 11.1 State Machine Diagram
 
 ```
-                    ┌─────────┐
-             ┌─────►│ Pending │──────────────────────────┐
-             │      └────┬────┘                          │
-             │           │ Staff starts job              │
-             │           ▼                               │
-             │     ┌───────────┐                         │ Staff rejects
-             │     │Processing │─────────────────────────┤
-             │     └─────┬─────┘                         │
-             │           │ Staff finishes printing        │
-             │           ▼                               │
-             │       ┌───────┐                           │
-             │       │ Ready │────────────────────────── ┤
-             │       └───┬───┘                           │
-             │           │ Student collects              ▼
-             │           ▼                         ┌──────────┐
-             │     ┌───────────┐                   │ Rejected │ (terminal)
-             │     │ Collected │ (terminal)         └──────────┘
-             │     └───────────┘
-             │
-          [any state can transition to Rejected]
+   ┌─────────┐  Staff accepts   ┌────────────┐  Staff finishes  ┌───────┐  Student collects  ┌───────────┐
+   │ Pending │ ───────────────► │ Processing │ ───────────────► │ Ready │ ─────────────────► │ Collected │ (final)
+   └────┬────┘                  └────────────┘                  └───────┘                    └───────────┘
+        │ Staff rejects (reason required)
+        ▼
+   ┌──────────┐
+   │ Rejected │ (final)
+   └──────────┘
 ```
+
+A request can only be rejected while it is still `Pending` (Final Project rule; the Mid
+Project also allowed rejecting from `Processing` and `Ready`).
 
 ### 11.2 Valid Transitions Table
 
 | From | To | Triggered By |
 |---|---|---|
-| `Pending` | `Processing` | Staff |
-| `Pending` | `Rejected` | Staff |
+| `Pending` | `Processing` | Staff (accept) |
+| `Pending` | `Rejected` | Staff (reject; a reason of 5–500 characters is required) |
 | `Processing` | `Ready` | Staff |
-| `Processing` | `Rejected` | Staff |
 | `Ready` | `Collected` | Staff (on student collection) |
-| `Ready` | `Rejected` | Staff |
 | `Collected` | *(none)* | — |
 | `Rejected` | *(none)* | — |
+
+Only staff (role `admin`) may change the status; anyone else receives `403 Forbidden`.
+Every change is stored in `print_request_status_history` (from, to, staff member, time, note)
+and in the audit log. The rejection reason is stored in the history `note` and returned to
+the student as `rejection_reason`.
 
 ### 11.3 Enforcement
 
 The `update_print_request` CRUD function checks the current status against a transition allowlist before applying the update. If the requested transition is not in the allowlist, it raises an `HTTPException(422)` with a message like:
-`"Invalid status transition: cannot move from 'Collected' to 'Processing'."`
+`"Cannot transition from 'Collected' to 'Processing'. Allowed transitions: none"`.
+Rejecting without a reason of at least 5 characters also returns `422`.
 
 ---
 

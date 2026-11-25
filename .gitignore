@@ -17,3 +17,6 @@ frontend/dist/
 .vercel/
 .vscode/*
 !.vscode/extensions.json
+
+# TypeScript incremental build cache
+*.tsbuildinfo
