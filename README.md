@@ -174,7 +174,9 @@ cd backend && python -m pytest -q      # 145 passed (20 PostgreSQL integration t
 cd frontend && npm test                # 7 theme tests
 ```
 
-Covered: login, lockout, missing/invalid/tampered/expired tokens (401), refresh rotation and reuse, logout, sessions, RBAC (own vs. other records, admin-only endpoints, group permissions, owner-only actions, admin safety rules, banned users), status workflow, uploads, admin dashboard, CSV exports, migrations, printing cost and payment.
+The deployed Production app was also checked end to end (signup/login/refresh/logout, JWT rejection, RBAC, groups, workflow, uploads, cost and payment, admin dashboard, CSV exports) — results in [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md#part-d--evidence).
+
+Covered by unit/integration tests: login, lockout, missing/invalid/tampered/expired tokens (401), refresh rotation and reuse, logout, sessions, RBAC (own vs. other records, admin-only endpoints, group permissions, owner-only actions, admin safety rules, banned users), status workflow, uploads, admin dashboard, CSV exports, migrations, printing cost and payment.
 
 ## 📡 Main API endpoints
 
@@ -190,12 +192,12 @@ Full interactive list: **/api/docs**.
 
 ## ☁️ Deployment
 
-Vercel project linked to this GitHub repository; every push to `main` deploys Production. `vercel.json` routes `/api/*` to the FastAPI service and everything else to the Vite build (deep links such as `/admin/users` reload correctly). Production environment variables are set in Vercel; database migrations are applied with Alembic before deploying.
+Vercel project linked to this GitHub repository; every push to `main` deploys Production. `vercel.json` routes `/api/*` to the FastAPI service and everything else to the Vite build; the frontend service rewrites unknown paths to `index.html`, so deep links such as `/admin/users` reload correctly. Production environment variables are set in Vercel; database migrations are applied with Alembic before deploying.
 
 ## 📚 Documentation
 
-- [Final report](docs/FINAL_REPORT.md) (PRD, SRS, TDD, evidence)
-- [PRD](docs/PRD.md) · [SRS](docs/SRS.md) · [TDD](docs/TDD.md)
+- [Final report](docs/FINAL_REPORT.md) — PRD, SRS, TDD, live verification evidence, limitations
+- Mid-project documents (kept for history): [PRD](docs/PRD.md) · [SRS](docs/SRS.md) · [TDD](docs/TDD.md)
 
 ## 📄 License
 
