@@ -1145,4 +1145,3 @@ PrintPoint now covers the full path of a campus print job — submission with a 
 | demo.student2@uni.edu | user (Student) | group member: can create + edit, cannot assign |
 | demo.student3@uni.edu | user (Student) | group member: view only |
 
-Passwords: supplied in the submitted PDF / submission form only.
