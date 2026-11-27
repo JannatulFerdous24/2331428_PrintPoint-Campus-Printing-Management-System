@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
 import { errorText } from "../api/client"
 import { printRequestsApi } from "../api/printRequests"
-import type { PrintRequest, StatusHistoryEntry } from "../types"
+import type { PaymentStatus, PrintRequest, StatusHistoryEntry } from "../types"
+import { formatTaka } from "../types"
+import { PaymentBadge } from "./PaymentBadge"
 import { StaffActions } from "./StaffActions"
 import { StatusBadge } from "./StatusBadge"
 
@@ -21,6 +23,7 @@ export function RequestDetails({ request: r, onChanged }: Props) {
   const [history, setHistory] = useState<StatusHistoryEntry[] | null>(null)
   const [error, setError] = useState("")
   const [opening, setOpening] = useState(false)
+  const [paying, setPaying] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -47,6 +50,22 @@ export function RequestDetails({ request: r, onChanged }: Props) {
     }
   }
 
+  async function setPayment(next: PaymentStatus) {
+    if (!onChanged) return
+    setPaying(true)
+    setError("")
+    try {
+      // Staff only - the server answers 403 for anyone without PAYMENT_UPDATE.
+      onChanged(await printRequestsApi.setPayment(r.id, next))
+    } catch (err) {
+      setError(errorText(err, "Could not update the payment"))
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  const paid = r.payment_status === "Paid"
+
   return (
     <div className="detail-card">
       <h2>Request #{r.id}</h2>
@@ -70,8 +89,30 @@ export function RequestDetails({ request: r, onChanged }: Props) {
               )}
             </td>
           </tr>
+          <tr><td>Pages</td><td>{r.pages ?? 1}</td></tr>
           <tr><td>Copies</td><td>{r.copies}</td></tr>
           <tr><td>Print Type</td><td>{r.print_type}</td></tr>
+          <tr><td>Total cost</td><td><strong>{formatTaka(r.total_cost ?? 0)}</strong></td></tr>
+          <tr>
+            <td>Payment</td>
+            <td>
+              <PaymentBadge status={r.payment_status} />
+              {paid && r.paid_at && <span className="muted"> · {new Date(r.paid_at).toLocaleString()}</span>}
+              {r.permissions?.update_payment && onChanged && (
+                paid ? (
+                  <button className="btn btn-sm btn-secondary inline-btn" disabled={paying} onClick={() => setPayment("Pending")}>
+                    {paying ? "Saving…" : "Undo paid"}
+                  </button>
+                ) : (
+                  r.status !== "Rejected" && (
+                    <button className="btn btn-sm btn-success inline-btn" disabled={paying} onClick={() => setPayment("Paid")}>
+                      {paying ? "Saving…" : `Mark as paid (${formatTaka(r.total_cost ?? 0)})`}
+                    </button>
+                  )
+                )
+              )}
+            </td>
+          </tr>
           <tr><td>Status</td><td><StatusBadge status={r.status} /></td></tr>
           {r.status === "Rejected" && (
             <tr><td>Rejection reason</td><td>{r.rejection_reason || "—"}</td></tr>

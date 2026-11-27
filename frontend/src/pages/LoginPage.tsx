@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { errorText } from "../api/client"
 import { useAuth } from "../auth/AuthContext"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -29,6 +30,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
+      <ThemeToggle floating />
       <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-brand">🖨️ PrintPoint</div>
         <h2>Log in</h2>

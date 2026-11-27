@@ -39,6 +39,11 @@ class RequestStatus(str, Enum):
     rejected = "Rejected"
 
 
+class PaymentStatus(str, Enum):
+    pending = "Pending"
+    paid = "Paid"
+
+
 class UserRole(str, Enum):
     """Stored role. UI labels: user -> "Student", admin -> "Print-Shop Staff (Admin)"."""
     user = "user"
@@ -203,6 +208,13 @@ class PrintRequest(SQLModel, table=True):
     content_type: Optional[str] = Field(default=None, max_length=100)
     file_size_bytes: Optional[int] = Field(default=None)
     uploaded_at: Optional[datetime] = Field(default=None)
+
+    # --- Cost and payment (added in 0004). total_cost is in Taka and is ALWAYS
+    # calculated by the server (pricing.py), never taken from the browser. ---
+    pages: int = Field(default=1, ge=1, le=1000)
+    total_cost: int = Field(default=0, ge=0)
+    payment_status: PaymentStatus = Field(default=PaymentStatus.pending)
+    paid_at: Optional[datetime] = Field(default=None)
 
 
 class PrintRequestStatusHistory(SQLModel, table=True):

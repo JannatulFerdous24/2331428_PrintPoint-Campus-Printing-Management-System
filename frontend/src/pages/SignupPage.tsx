@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { errorText } from "../api/client"
 import { useAuth } from "../auth/AuthContext"
 import { passwordProblems } from "../auth/passwordRules"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 export function SignupPage() {
   const { signup } = useAuth()
@@ -34,6 +35,7 @@ export function SignupPage() {
 
   return (
     <div className="auth-page">
+      <ThemeToggle floating />
       <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-brand">🖨️ PrintPoint</div>
         <h2>Create a student account</h2>

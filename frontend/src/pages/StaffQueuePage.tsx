@@ -4,11 +4,12 @@ import { errorText } from "../api/client"
 import { printRequestsApi } from "../api/printRequests"
 import { Pagination } from "../components/Pagination"
 import { RequestDetails } from "../components/RequestDetails"
+import { PaymentBadge } from "../components/PaymentBadge"
 import { StatusBadge } from "../components/StatusBadge"
-import { PRINT_TYPES, REQUEST_STATUSES, type PrintRequest, type RequestQuery, type RequestStatus } from "../types"
+import { PRINT_TYPES, REQUEST_STATUSES, formatTaka, type PrintRequest, type RequestQuery, type RequestStatus } from "../types"
 
 const LIMIT = 20
-const EMPTY: RequestQuery = { q: "", status: "Pending", print_type: "", has_document: "", created_from: "", created_to: "", sort: "oldest" }
+const EMPTY: RequestQuery = { q: "", status: "Pending", print_type: "", payment_status: "", has_document: "", created_from: "", created_to: "", sort: "oldest" }
 
 /** Staff (admin) work queue: incoming requests, oldest first, with search and filters. */
 export function StaffQueuePage() {
@@ -78,7 +79,7 @@ export function StaffQueuePage() {
       <div className="page">
         <button className="btn btn-secondary" onClick={() => { setSelected(null); load() }}>← Back to queue</button>
         {message && <div className="alert alert-success spaced">{message}</div>}
-        <RequestDetails request={selected} onChanged={(u) => { setSelected(u); setMessage(`Request #${u.id} is now ${u.status}.`) }} />
+        <RequestDetails request={selected} onChanged={(u) => { setSelected(u); setMessage(`Request #${u.id}: ${u.status}, payment ${u.payment_status === "Paid" ? "Paid" : "Unpaid"}.`) }} />
       </div>
     )
   }
@@ -103,6 +104,11 @@ export function StaffQueuePage() {
           <option value="">Any print type</option>
           {PRINT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
+        <select value={filters.payment_status} onChange={set("payment_status")} aria-label="Payment">
+          <option value="">Paid or unpaid</option>
+          <option value="Pending">Unpaid</option>
+          <option value="Paid">Paid</option>
+        </select>
         <select value={filters.has_document} onChange={set("has_document")} aria-label="Document">
           <option value="">With or without file</option>
           <option value="true">Has document</option>
@@ -126,7 +132,7 @@ export function StaffQueuePage() {
         <div className="table-wrapper">
           <table>
             <thead>
-              <tr><th>#ID</th><th>Student</th><th>Document</th><th>File</th><th>Copies</th><th>Type</th><th>Status</th><th>Submitted</th><th></th></tr>
+              <tr><th>#ID</th><th>Student</th><th>Document</th><th>File</th><th>Copies</th><th>Type</th><th>Cost</th><th>Status</th><th>Submitted</th><th></th></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
@@ -137,6 +143,7 @@ export function StaffQueuePage() {
                   <td>{r.has_document ? "📄" : <span className="muted">none</span>}</td>
                   <td>{r.copies}</td>
                   <td>{r.print_type}</td>
+                  <td className="nowrap">{formatTaka(r.total_cost ?? 0)} <PaymentBadge status={r.payment_status} /></td>
                   <td><StatusBadge status={r.status} /></td>
                   <td>{new Date(r.created_at).toLocaleString()}</td>
                   <td><button className="btn btn-sm btn-info" onClick={() => open(r.id)}>Open</button></td>

@@ -2,322 +2,201 @@
 
 [![Frontend](https://img.shields.io/badge/Frontend-React_19_+_TypeScript_+_Vite-61dafb?logo=react)](https://react.dev/)
 [![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Database](https://img.shields.io/badge/Database-SQLite_%2F_PostgreSQL-003B57?logo=sqlite)](https://www.sqlite.org/)
+[![Database](https://img.shields.io/badge/Database-Supabase_PostgreSQL-3ECF8E?logo=supabase)](https://supabase.com/)
 [![Deployment](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/)
 
-PrintPoint is a modern web-based campus printing management system that enables university students to submit, customize, and track printing requests online without physically standing in line at the campus print shop. Print-shop staff and administrators manage incoming requests through an organized digital queue with a robust status lifecycle.
+PrintPoint lets university students submit print jobs online (upload a PDF/DOCX, see the price, track the status) and lets print-shop staff run a digital queue. The CSE309 final project extends the mid project with JWT authentication, role-based access control (RBAC), shared groups with per-member permissions and an admin dashboard.
 
----
+## 🔗 Live links
 
-## 📚 Project Documentation
+| What | URL |
+|---|---|
+| Frontend | https://2331428.vercel.app |
+| API (base) | https://2331428.vercel.app/api |
+| API docs (Swagger) | https://2331428.vercel.app/api/docs |
+| Health check | https://2331428.vercel.app/api/health |
+| Final report | [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
 
-Detailed project specifications and architectural designs are available in the [`docs/`](./docs) folder:
+The deployed app is built from the `main` branch. Data is stored in a hosted **Supabase PostgreSQL** database (not SQLite), so it survives restarts.
 
-- 📋 **[Product Requirements Document (PRD)](./docs/PRD.md)**: Product purpose, target users (students, staff, admin), measurable success metrics, full feature scope, user journeys, risks, and roadmap.
-- 📐 **[Software Requirements Specification (SRS)](./docs/SRS.md)**: IEEE-standard specification covering functional requirements (FR-01 to FR-15), non-functional requirements (NFR-01 to NFR-10), use cases (UC-01 to UC-05), API specifications, database design, acceptance criteria, and traceability matrix.
-- 🏗️ **[Technical Design Document (TDD)](./docs/TDD.md)**: Technical architecture, directory structure, module breakdown, SQLModel database schema, REST API design, state transitions, security, testing strategy, and Vercel deployment configuration.
+## 👥 Test accounts (for the instructor)
 
----
+Passwords are **not** in this repository. They are given only in the submission form and the PDF report.
 
-## 🚀 Features (Mid-Project MVP)
-
-### Print Request Management (Full CRUD)
-- **Create**: Students submit requests specifying student name, document name, copies (1–999), print type (Black & White or Color), and optional notes.
-- **Read List**: Real-time tabular view showing request ID, student name, document title, copy count, print type, color-coded status badge, and timestamps.
-- **Read Single**: Dedicated detail view inspecting all metadata of any print request.
-- **Update**: Edit copy count, print type, student name, document name, notes, and advance request status according to business transition rules.
-- **Delete**: Remove requests with a safe confirmation modal dialog.
-
-### Request Status Lifecycle
-Requests advance through an enforced state machine:
-`Pending` ➔ `Processing` ➔ `Ready` ➔ `Collected`, or `Pending` ➔ `Rejected` (staff must give a reason, which the student sees). Only staff (admins) change the status.
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | Details |
+| User ID (email) | Role | Notes |
 |---|---|---|
-| **Frontend** | React 19, TypeScript, Vite | Modern functional components, responsive UI, loading states, error boundaries |
-| **Backend** | FastAPI, Python 3.10+ | High-performance asynchronous REST API with Pydantic validation |
-| **ORM / DB** | SQLModel (SQLAlchemy) | SQLite for local development, PostgreSQL-ready for production |
-| **Testing** | pytest, HTTPX TestClient | Automated backend unit and integration test suite |
-| **Deployment** | Vercel | Monorepo configuration via `vercel.json` routing `/api` to backend and `/*` to Vite |
+| `demo.admin1@uni.edu` | admin (Print-Shop Staff) | dashboard, users, moderation, audit log, staff queue |
+| `demo.admin2@uni.edu` | admin (Print-Shop Staff) | second admin (shows "admin cannot ban another admin") |
+| `demo.student1@uni.edu` | user (Student) | owner of the shared group |
+| `demo.student2@uni.edu` | user (Student) | group member: can create + edit, cannot assign |
+| `demo.student3@uni.edu` | user (Student) | group member: view only |
 
----
+**Shared group with mixed permissions:** `CSE309 Project Team`
 
-## 📁 Project Structure
-
-```
-Printpoint_Campus_Printing_Management_System/
-├── backend/
-│   ├── main.py                  # FastAPI entry point, CORS, lifespan, static mounting
-│   ├── database.py              # SQLite / PostgreSQL engine and session dependency
-│   ├── models.py                # SQLModel table definitions (PrintRequest, enums)
-│   ├── schemas.py               # Pydantic validation schemas (Create, Read, Update)
-│   ├── crud.py                  # Database CRUD logic and status transition validation
-│   ├── requirements.txt         # Python dependencies
-│   ├── .env.example             # Environment variable template
-│   ├── routers/
-│   │   ├── __init__.py
-│   │   └── print_requests.py    # REST API route handlers (/api/print-requests)
-│   └── tests/
-│       ├── __init__.py
-│       └── test_print_requests.py # Pytest test suite with in-memory SQLite
-├── frontend/
-│   ├── index.html               # HTML entry point
-│   ├── package.json             # NPM dependencies and scripts
-│   ├── tsconfig.json            # TypeScript configuration
-│   ├── vite.config.ts           # Vite config with /api reverse proxy
-│   └── src/
-│       ├── main.tsx             # React DOM root
-│       ├── App.tsx              # Application shell
-│       ├── index.css            # Custom CSS styling and responsive layout
-│       ├── api/
-│       │   └── printRequests.ts # Typed API client for FastAPI endpoints
-│       ├── types/
-│       │   └── index.ts         # TypeScript interfaces, enums, transition maps
-│       ├── components/
-│       │   ├── PrintRequestForm.tsx  # Create / Edit request form
-│       │   ├── PrintRequestTable.tsx # Tabular list of requests
-│       │   ├── StatusBadge.tsx       # Color-coded status badge
-│       │   └── ConfirmDialog.tsx     # Delete confirmation modal
-│       └── pages/
-│           └── PrintRequestsPage.tsx # Master CRUD page
-├── docs/
-│   ├── PRD.md                   # Product Requirements Document
-│   ├── SRS.md                   # Software Requirements Specification
-│   └── TDD.md                   # Technical Design Document
-├── vercel.json                  # Multi-service Vercel deployment configuration
-├── pyproject.toml               # Python project configuration
-├── README.md                    # Project documentation
-└── .gitignore                   # Git ignore patterns
-```
-
----
-
-## 💻 Local Development Setup
-
-### Prerequisites
-- **Node.js** 20+ and **npm**
-- **Python** 3.10+ (with `pip` and `venv`)
-
-### 1. Backend Setup
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Windows (CMD):
-.venv\Scripts\activate.bat
-# macOS / Linux:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the backend development server
-fastapi dev main.py
-# or: uvicorn main:app --reload --port 8000
-```
-
-The backend will start at `http://localhost:8000`.
-- Interactive Swagger UI: `http://localhost:8000/docs`
-- ReDoc documentation: `http://localhost:8000/redoc`
-
-### 2. Frontend Setup
-
-In a separate terminal:
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run the Vite development server
-npm run dev
-```
-
-The frontend will run at `http://localhost:5173`. Vite automatically proxies `/api/*` calls to `http://localhost:8000`.
-
-### 3. Running Production Build Locally
-
-```bash
-# Build the React frontend
-cd frontend
-npm run build
-
-# Start FastAPI (it automatically serves frontend/dist as static files)
-cd ../backend
-uvicorn main:app --port 8000
-```
-Open `http://localhost:8000` to use the fully combined production build.
-
----
-
-## ⚙️ Environment Variables
-
-Create `.env` in the `backend/` directory (see `backend/.env.example`):
-
-```env
-# App database (Supabase transaction pooler, port 6543).
-# Locally you may use SQLite instead: DATABASE_URL=sqlite:///./printpoint.db
-DATABASE_URL=postgresql://postgres.<project-ref>:<your-db-password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-
-# Used only by Alembic migrations (Supabase session pooler, port 5432)
-MIGRATION_DATABASE_URL=postgresql://postgres.<project-ref>:<your-db-password>@aws-0-<region>.pooler.supabase.com:5432/postgres
-
-# Allowed CORS origins (comma-separated)
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-> Never commit `backend/.env`. On Vercel the backend **refuses to start** with SQLite or without `DATABASE_URL`, so production data can never silently land in temporary storage.
-
-### 🗄️ Database Setup (Supabase PostgreSQL)
-
-PrintPoint uses **two separate Supabase projects**, both in region **US East (N. Virginia)** to match the Vercel function region `iad1`:
-
-| Project | Used by |
-|---|---|
-| `printpoint-dev` | local `backend/.env`, Vercel **Preview** |
-| `printpoint-prod` | Vercel **Production** only |
-
-1. Create the project and copy the **Transaction pooler** (port 6543) and **Session pooler** (port 5432) connection strings from *Connect*.
-2. Put them in `backend/.env` as `DATABASE_URL` and `MIGRATION_DATABASE_URL`.
-3. Review the SQL a migration will run (prints only, no connection):
-   ```bash
-   cd backend
-   alembic upgrade head --sql
-   ```
-4. Apply migrations (connects to the database):
-   ```bash
-   alembic upgrade head
-   alembic current        # shows the applied revision
-   ```
-
-**Migrations**
-
-| Revision | What it does |
-|---|---|
-| `0001_create_print_requests` | Mid Project `print_requests` table |
-| `0002_core_security_schema` | Adds `users`, `refresh_sessions`, `login_attempts`, `audit_logs`, `groups`, `group_members`, `print_request_status_history`, and nullable ownership/document columns on `print_requests` (additive only) |
-
-Local development without Supabase uses `backend/printpoint_dev.db` (SQLite, auto-created). The Mid Project's old `printpoint.db` is never opened by the new code.
-
-**Document storage:** uploaded documents will live in a **private** Supabase Storage bucket (`print-documents`). The backend checks permissions and hands out short-lived signed URLs; `SUPABASE_SERVICE_ROLE_KEY` is backend-only and never sent to the browser.
-
-How the connection works: the app uses SQLAlchemy with the `psycopg` driver, `NullPool` (Supabase's pooler does the pooling, which suits Vercel serverless), prepared statements disabled (required by the transaction pooler) and `sslmode=require`. Row Level Security is enabled on every table so Supabase's public Data API cannot access it; the backend connects as the table owner.
-
-Tests never use these settings: `backend/tests/conftest.py` forces an in-memory SQLite database.
-
-For the frontend (optional in `frontend/.env`):
-```env
-# Optional API override (defaults to relative /api when omitted)
-VITE_API_URL=
-```
-
----
-
-## 🧪 Running Automated Tests
-
-Run the backend test suite:
-
-```bash
-cd backend
-python -m pytest tests/ -v
-```
-
-The test suite covers:
-- ✅ Request creation (`POST /api/print-requests`)
-- ✅ Input validation rejection (missing fields, zero/negative copies)
-- ✅ Request listing (`GET /api/print-requests`)
-- ✅ Single request retrieval (`GET /api/print-requests/{id}`)
-- ✅ Nonexistent ID handling (`404 Not Found`)
-- ✅ Request updates (`PATCH /api/print-requests/{id}`)
-- ✅ Valid status transitions (`Pending` ➔ `Processing`)
-- ✅ Invalid status transition rejection (`422 Unprocessable Entity`)
-- ✅ Request deletion and verification (`DELETE /api/print-requests/{id}`)
-- ✅ Status filtering (`GET /api/print-requests?status=Pending`)
-
----
-
-## 📡 REST API Reference
-
-| Method | Endpoint | Description | Request Body | Status Codes |
+| Member | Create | Edit | Assign | Rename / delete / manage members |
 |---|---|---|---|---|
-| `POST` | `/api/print-requests` | Create new print request | `PrintRequestCreate` JSON | `201`, `422` |
-| `GET` | `/api/print-requests` | List all print requests | Query: `status`, `skip`, `limit` | `200` |
-| `GET` | `/api/print-requests/{id}` | Get single request details | None | `200`, `404` |
-| `PATCH` | `/api/print-requests/{id}` | Update request details / status | `PrintRequestUpdate` JSON | `200`, `404`, `422` |
-| `DELETE` | `/api/print-requests/{id}` | Delete a print request | None | `204`, `404` |
-| `GET` | `/api/health` | Health check endpoint | None | `200` |
+| demo.student1 (owner) | ✅ | ✅ | ✅ | ✅ (owner only) |
+| demo.student2 | ✅ | ✅ | ❌ | ❌ |
+| demo.student3 | ❌ | ❌ | ❌ | ❌ (view only) |
 
----
+Sample data: 6 print requests covering every status (Pending, Processing, Ready, Collected, Rejected with a reason), paid and unpaid, personal and group requests.
 
-## ☁️ Deployment to Vercel
+## 🚀 Features
 
-The project is preconfigured for zero-config Vercel deployment using `vercel.json`:
+**Students (role `user`)**
+- Sign up, log in, update profile, change password (current password required), list and revoke own sessions.
+- Create print requests with a PDF/DOCX upload (max 4 MB, stored in a private bucket), page count, copies and print type.
+- **Printing cost:** the form shows the estimated price before submitting (B&W Tk 2/page, Color Tk 10/page; total = pages × copies × rate). The server recalculates and stores the amount; the browser's price is never trusted.
+- **Payment status:** every request shows Paid / Unpaid. A paid request can no longer be edited.
+- See only their own requests and their groups' requests (other IDs return 404).
+- Groups: create a group, add members with different permissions (create, edit, assign); only the owner renames, deletes or manages members.
 
-```json
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "backend": {
-      "root": "backend",
-      "framework": "fastapi",
-      "entrypoint": "main:app"
-    },
-    "frontend": {
-      "root": "frontend",
-      "framework": "vite"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "backend" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
-  ]
-}
+**Print-shop staff (role `admin`)**
+- Staff queue: tabs per status, search, filters (type, payment, document, dates), oldest first.
+- Status workflow `Pending → Processing → Ready → Collected` or `Pending → Rejected` (reason required, shown to the student), with a status history timeline.
+- Mark a request as **Paid** (or undo); recorded in the audit log.
+- Admin dashboard: statistics, user list with search/filters/paging, user detail (requests, groups, sessions, activity), ban/unban with reason, bulk ban/unban, role change, revoke sessions, content moderation (delete one or many requests/groups), activity (audit) log with filters, security view (failed logins by IP and account), CSV exports of users, requests and activity that respect the filters.
+
+**Everyone:** 🌙/☀️ dark / light mode toggle on every page, remembered across reloads.
+
+## 🔐 Security summary
+
+| Topic | Implementation | Code |
+|---|---|---|
+| Passwords | Argon2id( HMAC-SHA256(PASSWORD_PEPPER, password) ); random salt per hash; pepper only in env | `backend/auth/security.py` |
+| Access token | JWT HS256, ≤ 15 min, claims `sub` (user id), `role`, `sid`, `type`, `iat`, `exp`, `jti`; verified on every request | `backend/auth/tokens.py`, `auth/dependencies.py` |
+| Refresh / logout | random token in an httpOnly cookie, only its SHA-256 hash stored; rotation + reuse detection; logout revokes the session | `backend/auth/router.py`, `auth/service.py` |
+| RBAC | one module: permission constants, `require_permission` dependency, ownership + group checks, admin safety rules | `backend/rbac.py` |
+| Banned / role change | user re-loaded from the database on every request, so it applies on the very next request | `backend/auth/dependencies.py` |
+| Brute force | account lockout after 5 wrong passwords + per-IP limit (429) | `backend/auth/service.py` |
+| Files | type checked by content (magic bytes), private bucket, 60-second signed download links after a permission check | `backend/documents.py`, `backend/storage.py` |
+| Database | Row Level Security enabled on every table (no public Data API access) | `backend/migrations/` |
+| Errors / CORS | consistent JSON errors, no stack traces, CORS limited to the frontend URL | `backend/main.py` |
+
+## 🛠️ Technology stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, React Router |
+| Backend | FastAPI, SQLModel / SQLAlchemy, Pydantic, PyJWT, argon2-cffi |
+| Database | Supabase PostgreSQL (psycopg 3, transaction pooler), Alembic migrations |
+| File storage | Supabase Storage (private bucket `print-documents`) |
+| Tests | pytest (backend), Node built-in test runner (frontend theme logic) |
+| Hosting | Vercel (`vercel.json`: `/api/*` → FastAPI, everything else → Vite build) |
+
+## 📁 Project structure
+
+```
+backend/
+  main.py              FastAPI app, CORS, error handlers, routers
+  config.py            settings from environment variables (refuses weak secrets)
+  database.py          engine (Supabase pooler or local SQLite) + session dependency
+  models.py            tables;  schemas.py  request/response models
+  rbac.py              the RBAC module (permissions, ownership, groups, admin safety)
+  crud.py              print-request database logic (status history, audit)
+  pricing.py           printing rates and cost calculation
+  documents.py / storage.py   upload validation / private Supabase Storage
+  audit.py             activity log helper
+  auth/                router.py + service.py (signup/login/refresh/logout), security.py (hashing),
+                       tokens.py (JWT), dependencies.py (current user)
+  routers/             print_requests, groups, admin
+  migrations/versions/ 0001 … 0004 (Alembic)
+  scripts/             create_admin, seed_demo, setup_storage_bucket, run_with_env
+  tests/               pytest suites
+frontend/src/
+  auth/                AuthContext (token in memory, silent refresh), route guards
+  api/                 typed API clients
+  components/, pages/  UI (student pages, staff queue, admin dashboard)
+  theme.ts             light/dark theme logic
+docs/                  PRD.md, SRS.md, TDD.md, FINAL_REPORT.md
 ```
 
-### Steps to Deploy:
-1. Push your changes to the GitHub repository:
-   ```bash
-   git push origin main
-   ```
-2. In [Vercel](https://vercel.com/new), click **Add New Project** and import your repository.
-3. Keep the **Root Directory** as `./`.
-4. Add environment variables if using a hosted database:
-   - `DATABASE_URL`: `postgresql://user:password@host:port/database`
-5. Click **Deploy**. Vercel will automatically build the Vite frontend and deploy the FastAPI backend service.
+## 💻 Run locally
 
----
+Prerequisites: Python 3.12+, Node.js 22.18+ (or 24).
 
-## 🎓 University Assessment & Viva Guide
+```bash
+# Backend
+cd backend
+python -m venv .venv
+.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env            # then fill in values (see below)
+alembic upgrade head              # create / update the database schema
+uvicorn main:app --reload --port 8000
 
-### Architecture Overview
-PrintPoint follows a clean, decoupled architecture:
-1. **Presentation Layer (React + TypeScript)**: Responsive single-page application communicating via asynchronous `fetch` requests with JSON payloads.
-2. **API & Business Logic (FastAPI + Pydantic)**: Enforces input validation, CORS policies, and state machine validation.
-3. **Persistence Layer (SQLModel + SQLite/PostgreSQL)**: Type-safe database mapping with automatic schema migrations.
+# Frontend (second terminal)
+cd frontend
+npm install
+npm run dev                       # http://localhost:5173 (proxies /api to :8000)
+```
 
-### How to Demonstrate in Browser
-1. Open `http://localhost:5173` (or the deployed Vercel URL).
-2. **Create**: Click `+ New Request`, fill out student name, document name, copies, choose `Color` or `Black & White`, click `Create Request`.
-3. **Read List**: Observe the new row immediately rendered in the table with a yellow `Pending` badge.
-4. **Read Single**: Click `View` to see full metadata including created/updated timestamps and notes.
-5. **Update**: Click `Edit`, update the copy count or transition status from `Pending` to `Processing`, click `Save Changes`.
-6. **Delete**: Click `Delete`, confirm in the modal dialog, observe the item disappear from the table.
-7. **Developer Tools**: Press `F12` > Network tab to show POST/GET/PATCH/DELETE requests with `201`, `200`, `204` status codes.
+Create the first admin account (signup only ever creates students):
 
----
+```bash
+cd backend
+python scripts/create_admin.py --email you@example.com --name "Your Name"   # asks for the password
+```
+
+## ⚙️ Environment variables
+
+Names only — values live in `backend/.env` (git-ignored) locally and in Vercel → Settings → Environment Variables (Production) when deployed. See [`backend/.env.example`](backend/.env.example).
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Supabase transaction pooler (port 6543) used by the app |
+| `MIGRATION_DATABASE_URL` | Supabase session pooler (port 5432) used by Alembic only (local) |
+| `JWT_SECRET` | signs access tokens |
+| `PASSWORD_PEPPER` | server-side secret mixed into every password hash |
+| `ACCESS_TOKEN_MINUTES` | access token lifetime (1–15) |
+| `REFRESH_TOKEN_DAYS` | refresh session lifetime |
+| `COOKIE_SECURE` | `true` on HTTPS (always forced on Vercel) |
+| `CORS_ORIGINS` | allowed frontend origin(s) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | private document storage (backend only) |
+
+Two Supabase projects are used: `printpoint-dev` (local development) and `printpoint-prod` (Vercel Production only).
+
+## 🗄️ Migrations
+
+| Revision | Change |
+|---|---|
+| `0001_create_print_requests` | mid-project `print_requests` table |
+| `0002_core_security_schema` | users, sessions, login attempts, audit log, groups, members, status history (+ RLS) |
+| `0003_owner_required` | every print request must have an owner |
+| `0004_cost_and_payment` | `pages`, `total_cost`, `payment_status`, `paid_at` |
+
+Preview the SQL without connecting: `alembic upgrade head --sql`.
+
+## 🧪 Tests
+
+```bash
+cd backend && python -m pytest -q      # 145 passed (20 PostgreSQL integration tests skipped unless RUN_PG_INTEGRATION=1)
+cd frontend && npm test                # 7 theme tests
+```
+
+Covered: login, lockout, missing/invalid/tampered/expired tokens (401), refresh rotation and reuse, logout, sessions, RBAC (own vs. other records, admin-only endpoints, group permissions, owner-only actions, admin safety rules, banned users), status workflow, uploads, admin dashboard, CSV exports, migrations, printing cost and payment.
+
+## 📡 Main API endpoints
+
+Full interactive list: **/api/docs**.
+
+| Area | Endpoints |
+|---|---|
+| Auth | `POST /api/auth/signup`, `/login`, `/refresh`, `/logout`; `GET /api/auth/me`; `GET /api/auth/sessions`, `DELETE /api/auth/sessions/{id}`, `POST /api/auth/sessions/revoke-others` |
+| Profile | `GET/PATCH /api/users/me`, `POST /api/users/me/password` |
+| Print requests | `GET/POST /api/print-requests`, `GET/PATCH/DELETE /api/print-requests/{id}`, `GET /{id}/history`, `PUT/GET /{id}/document`, `PATCH /{id}/assignee`, `PATCH /{id}/payment` (staff), `GET /pricing` |
+| Groups | `GET/POST /api/groups`, `GET/PATCH/DELETE /api/groups/{id}`, members `POST/PATCH/DELETE /api/groups/{id}/members/...` |
+| Admin | `/api/admin/stats`, `/users` (+ ban, unban, bulk, role, revoke-sessions), `/groups`, moderation deletes, `/audit-logs`, `/security/failed-logins`, `/export/*.csv` |
+
+## ☁️ Deployment
+
+Vercel project linked to this GitHub repository; every push to `main` deploys Production. `vercel.json` routes `/api/*` to the FastAPI service and everything else to the Vite build (deep links such as `/admin/users` reload correctly). Production environment variables are set in Vercel; database migrations are applied with Alembic before deploying.
+
+## 📚 Documentation
+
+- [Final report](docs/FINAL_REPORT.md) (PRD, SRS, TDD, evidence)
+- [PRD](docs/PRD.md) · [SRS](docs/SRS.md) · [TDD](docs/TDD.md)
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+MIT — see [LICENSE](LICENSE).

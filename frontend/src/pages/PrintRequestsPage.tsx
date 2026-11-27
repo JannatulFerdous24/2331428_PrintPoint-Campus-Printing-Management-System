@@ -194,7 +194,7 @@ export function PrintRequestsPage() {
             request={selected}
             onChanged={(updated) => {
               setSelected(updated)
-              showSuccess(`Request #${updated.id} is now ${updated.status}.`)
+              showSuccess(`Request #${updated.id}: ${updated.status}, payment ${updated.payment_status === "Paid" ? "Paid" : "Unpaid"}.`)
               loadRequests()
             }}
           />

@@ -511,11 +511,11 @@ def export_requests(request: Request, filters: dict = Depends(list_filters),
                     admin: User = Depends(require_permission(Permission.DATA_EXPORT))):
     reqs, _ = crud.query_print_requests(session, crud.request_filters(**filters), limit=MAX_EXPORT_ROWS)
     emails = dict(session.exec(select(User.id, User.email)).all())
-    rows = [[r.id, r.student_name, emails.get(r.owner_id), r.document_name, r.original_filename, r.copies,
-             r.print_type, r.status, r.group_id, r.created_at, r.updated_at] for r in reqs]
+    rows = [[r.id, r.student_name, emails.get(r.owner_id), r.document_name, r.original_filename, r.pages,
+             r.copies, r.print_type, r.total_cost, r.payment_status, r.paid_at, r.status, r.group_id, r.created_at, r.updated_at] for r in reqs]
     return _csv(session, request, admin, "print-requests",
-                ["id", "student_name", "owner_email", "document_name", "uploaded_file", "copies", "print_type",
-                 "status", "group_id", "created_at", "updated_at"], rows, filters)
+                ["id", "student_name", "owner_email", "document_name", "uploaded_file", "pages", "copies", "print_type",
+                 "total_cost_bdt", "payment_status", "paid_at", "status", "group_id", "created_at", "updated_at"], rows, filters)
 
 
 @router.get("/export/audit-logs.csv")

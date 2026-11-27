@@ -12,6 +12,7 @@ Safety:
 - The secret key is read from backend/.env and is never printed.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +21,8 @@ from dotenv import dotenv_values
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEV_PROJECT_REF = "vxgubnunysotatnbfpip"  # printpoint-dev (Production is a separate project)
+# For Production pass --project-ref <prod ref> and run it through scripts/run_with_env.py
+# with the Production env file, so the URL and key come from that file.
 
 BUCKET_ID = "print-documents"
 MAX_UPLOAD_BYTES = 4_000_000  # approved limit: stays under Vercel's 4.5 MB request-body limit
@@ -42,13 +45,16 @@ def fail(msg: str) -> None:
 
 def main() -> None:
     execute = "--execute" in sys.argv
-    env = dotenv_values(BACKEND_DIR / ".env")
-    if env.get("VERCEL") or "VERCEL" in __import__("os").environ:
+    ref = sys.argv[sys.argv.index("--project-ref") + 1] if "--project-ref" in sys.argv else DEV_PROJECT_REF
+    env = {**dotenv_values(BACKEND_DIR / ".env"),
+           **{k: os.environ[k] for k in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_STORAGE_BUCKET")
+              if os.environ.get(k)}}
+    if env.get("VERCEL") or "VERCEL" in os.environ:
         fail("refusing to run on Vercel")
     base = (env.get("SUPABASE_URL") or "").rstrip("/")
     key = env.get("SUPABASE_SERVICE_ROLE_KEY") or ""
-    if base != f"https://{DEV_PROJECT_REF}.supabase.co":
-        fail("SUPABASE_URL is not the printpoint-dev project")
+    if base != f"https://{ref}.supabase.co":
+        fail(f"SUPABASE_URL does not match project {ref}")
     if not key:
         fail("SUPABASE_SERVICE_ROLE_KEY is empty")
     if (env.get("SUPABASE_STORAGE_BUCKET") or "") != BUCKET_ID:
@@ -56,7 +62,7 @@ def main() -> None:
 
     headers = {"apikey": key, "Authorization": f"Bearer {key}"}
     print(f"Mode:     {'EXECUTE' if execute else 'DRY RUN (nothing will be created or changed)'}")
-    print(f"Project:  printpoint-dev ({DEV_PROJECT_REF})")
+    print(f"Project:  {'printpoint-dev' if ref == DEV_PROJECT_REF else 'project'} ({ref})")
 
     with httpx.Client(base_url=f"{base}/storage/v1", headers=headers, timeout=30) as http:
         # Read-only: does the bucket exist already?

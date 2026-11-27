@@ -19,7 +19,8 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: Props) {
     >
       <div
         style={{
-          background: "#fff",
+          background: "var(--surface)",
+          color: "var(--text)",
           borderRadius: "8px",
           padding: "24px",
           maxWidth: "400px",

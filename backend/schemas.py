@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
-from models import PrintType, RequestStatus
+from models import PaymentStatus, PrintType, RequestStatus
 
 
 class PrintRequestCreate(BaseModel):
     student_name: str = Field(min_length=1, max_length=200)
     document_name: str = Field(min_length=1, max_length=500)
     copies: int = Field(ge=1, le=999)
+    pages: int = Field(default=1, ge=1, le=1000)  # pages in the document (cost = pages x copies x rate)
     print_type: PrintType = PrintType.black_and_white
     notes: Optional[str] = Field(default=None, max_length=1000)
     # Optional: create the request inside a group (needs can_create in that group).
@@ -18,6 +19,7 @@ class PrintRequestUpdate(BaseModel):
     student_name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     document_name: Optional[str] = Field(default=None, min_length=1, max_length=500)
     copies: Optional[int] = Field(default=None, ge=1, le=999)
+    pages: Optional[int] = Field(default=None, ge=1, le=1000)
     print_type: Optional[PrintType] = None
     status: Optional[RequestStatus] = None
     notes: Optional[str] = Field(default=None, max_length=1000)
@@ -48,11 +50,25 @@ class PrintRequestRead(BaseModel):
     content_type: Optional[str] = None
     file_size_bytes: Optional[int] = None
     uploaded_at: Optional[datetime] = None
+    # Cost (Taka, calculated by the server) and payment tracking.
+    pages: int = 1
+    total_cost: int = 0
+    payment_status: PaymentStatus = PaymentStatus.pending
+    paid_at: Optional[datetime] = None
     # What the CURRENT user may do with this request, computed by rbac.py.
     # The UI uses it to show/hide buttons; the server still checks every action.
     permissions: Optional[dict[str, bool]] = None
 
     model_config = {"from_attributes": True}
+
+
+class PaymentUpdate(BaseModel):
+    payment_status: PaymentStatus
+
+
+class PricingRead(BaseModel):
+    currency: str
+    rates_per_page: dict[PrintType, int]
 
 
 class AssigneeUpdate(BaseModel):

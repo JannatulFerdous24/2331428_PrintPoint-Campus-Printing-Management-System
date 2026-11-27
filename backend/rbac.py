@@ -25,7 +25,7 @@ from fastapi import Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from auth.dependencies import get_current_user
-from models import Group, GroupMember, PrintRequest, RequestStatus, User, UserRole
+from models import Group, GroupMember, PaymentStatus, PrintRequest, RequestStatus, User, UserRole
 
 ROLE_LABELS = {UserRole.user: "Student", UserRole.admin: "Print-Shop Staff (Admin)"}
 
@@ -42,6 +42,7 @@ class Permission(str, Enum):
     # staff / admin only
     REQUEST_READ_ALL = "request:read_all"
     REQUEST_UPDATE_STATUS = "request:update_status"
+    PAYMENT_UPDATE = "request:update_payment"   # mark a request Paid / Pending
     MODERATE_CONTENT = "content:moderate"        # delete any request / group (audited)
     USER_READ = "user:read"
     USER_BAN = "user:ban"
@@ -167,14 +168,16 @@ def request_permissions(session: Session, user: User, pr: PrintRequest) -> dict[
         if group is not None:
             flags = group_flags(group, get_membership(session, group.id, user.id), user)
     in_group = bool(flags and flags["is_member"])
-    pending = pr.status == RequestStatus.pending
+    # Editable only while Pending and not yet paid (the paid amount must not change).
+    editable = pr.status == RequestStatus.pending and pr.payment_status != PaymentStatus.paid
 
     return {
         "view": is_owner or in_group or has_permission(user, Permission.REQUEST_READ_ALL),
-        "edit": pending and (is_owner or bool(flags and flags["can_edit"])),
+        "edit": editable and (is_owner or bool(flags and flags["can_edit"])),
         "delete": is_owner or bool(flags and flags["is_owner"]),
         "change_status": has_permission(user, Permission.REQUEST_UPDATE_STATUS),
         "assign": bool(flags and flags["can_assign"]),
+        "update_payment": has_permission(user, Permission.PAYMENT_UPDATE),
     }
 
 

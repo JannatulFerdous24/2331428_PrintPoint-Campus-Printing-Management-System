@@ -1,6 +1,9 @@
-import { type FormEvent, useState } from "react"
-import type { CreatePrintRequestData, GroupSummary, PrintRequest, RequestStatus, UpdatePrintRequestData } from "../types"
-import { ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, MIN_REJECTION_REASON, PRINT_TYPES, VALID_TRANSITIONS } from "../types"
+import { type FormEvent, useEffect, useState } from "react"
+import { printRequestsApi } from "../api/printRequests"
+import type { CreatePrintRequestData, GroupSummary, Pricing, PrintRequest, RequestStatus, UpdatePrintRequestData } from "../types"
+import {
+  ALLOWED_EXTENSIONS, MAX_PAGES, MAX_UPLOAD_BYTES, MIN_REJECTION_REASON, PRINT_TYPES, VALID_TRANSITIONS, formatTaka,
+} from "../types"
 
 interface Props {
   initial?: Partial<PrintRequest>
@@ -34,6 +37,8 @@ export function PrintRequestForm({
   const [studentName, setStudentName] = useState(initial?.student_name ?? defaultName)
   const [documentName, setDocumentName] = useState(initial?.document_name ?? "")
   const [copies, setCopies] = useState(String(initial?.copies ?? "1"))
+  const [pages, setPages] = useState(String(initial?.pages ?? "1"))
+  const [pricing, setPricing] = useState<Pricing | null>(null)
   const [printType, setPrintType] = useState(initial?.print_type ?? "Black & White")
   const [status, setStatus] = useState<RequestStatus>(initial?.status ?? "Pending")
   const [notes, setNotes] = useState(initial?.notes ?? "")
@@ -49,12 +54,29 @@ export function PrintRequestForm({
   const statusChanging = isEdit && canChangeStatus && status !== currentStatus
   const rejecting = statusChanging && status === "Rejected"
 
+  useEffect(() => {
+    printRequestsApi.pricing().then(setPricing).catch(() => setPricing(null))
+  }, [])
+
+  // Estimate only - the server calculates and stores the real amount.
+  const pagesNum = parseInt(pages, 10)
+  const copiesNumber = parseInt(copies, 10)
+  const rate = pricing?.rates_per_page[printType]
+  const estimate =
+    rate !== undefined && pagesNum >= 1 && pagesNum <= MAX_PAGES && copiesNumber >= 1 && copiesNumber <= 999
+      ? pagesNum * copiesNumber * rate
+      : null
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError("")
     const copiesNum = parseInt(copies, 10)
     if (!fieldsLocked && (isNaN(copiesNum) || copiesNum < 1 || copiesNum > 999)) {
       setError("Copies must be between 1 and 999")
+      return
+    }
+    if (!fieldsLocked && (isNaN(pagesNum) || pagesNum < 1 || pagesNum > MAX_PAGES)) {
+      setError(`Pages must be between 1 and ${MAX_PAGES}`)
       return
     }
     if (requireFile && !file) {
@@ -73,6 +95,7 @@ export function PrintRequestForm({
             student_name: studentName.trim(),
             document_name: documentName.trim(),
             copies: copiesNum,
+            pages: pagesNum,
             print_type: printType,
             ...(notes.trim() ? { notes: notes.trim() } : {}),
           }
@@ -95,9 +118,11 @@ export function PrintRequestForm({
       {error && <div className="alert alert-error" role="alert">{error}</div>}
       {fieldsLocked && (
         <p className="muted">
-          {currentStatus === "Pending"
+          {currentStatus === "Pending" && initial?.payment_status !== "Paid"
             ? "You can view this request but not edit its details."
-            : "This request is no longer Pending, so its details are locked."}
+            : initial?.payment_status === "Paid"
+              ? "This request has been paid, so its details are locked."
+              : "This request is no longer Pending, so its details are locked."}
         </p>
       )}
 
@@ -159,6 +184,19 @@ export function PrintRequestForm({
 
         <div className="form-row">
           <div className="form-group">
+            <label htmlFor="pages">Pages in document *</label>
+            <input
+              id="pages"
+              type="number"
+              value={pages}
+              onChange={(e) => setPages(e.target.value)}
+              min="1"
+              max={MAX_PAGES}
+              required
+            />
+          </div>
+
+          <div className="form-group">
             <label>Copies *</label>
             <input
               type="number"
@@ -180,6 +218,21 @@ export function PrintRequestForm({
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="cost-estimate" aria-live="polite">
+          {estimate !== null && rate !== undefined ? (
+            <>
+              <span>Estimated cost</span>
+              <strong>{formatTaka(estimate)}</strong>
+              <small>
+                {pagesNum} page{pagesNum === 1 ? "" : "s"} × {copiesNumber} cop{copiesNumber === 1 ? "y" : "ies"} ×{" "}
+                {formatTaka(rate)} ({printType}) · pay at the counter
+              </small>
+            </>
+          ) : (
+            <span className="muted">{pricing ? "Enter pages and copies to see the cost" : "Loading prices…"}</span>
+          )}
         </div>
 
         {!isEdit && groups.length > 0 && (

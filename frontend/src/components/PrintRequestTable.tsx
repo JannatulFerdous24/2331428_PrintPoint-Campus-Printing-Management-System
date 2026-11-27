@@ -1,4 +1,6 @@
 import type { PrintRequest } from "../types"
+import { formatTaka } from "../types"
+import { PaymentBadge } from "./PaymentBadge"
 import { StatusBadge } from "./StatusBadge"
 
 interface Props {
@@ -23,6 +25,7 @@ export function PrintRequestTable({ requests, onView, onEdit, onDelete }: Props)
             <th>Document</th>
             <th>Copies</th>
             <th>Type</th>
+            <th>Cost</th>
             <th>Status</th>
             <th>Created</th>
             <th>Actions</th>
@@ -36,6 +39,9 @@ export function PrintRequestTable({ requests, onView, onEdit, onDelete }: Props)
               <td className="doc-name">{r.document_name}</td>
               <td>{r.copies}</td>
               <td>{r.print_type}{r.group_id ? <span className="role-chip">Group</span> : null}</td>
+              <td className="nowrap">
+                {formatTaka(r.total_cost ?? 0)} <PaymentBadge status={r.payment_status} />
+              </td>
               <td>
                 <StatusBadge status={r.status} />
               </td>

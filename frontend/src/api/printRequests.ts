@@ -1,6 +1,8 @@
 import type {
   CreatePrintRequestData,
   DocumentLink,
+  PaymentStatus,
+  Pricing,
   PrintRequest,
   RequestQuery,
   StatusHistoryEntry,
@@ -39,6 +41,13 @@ export const printRequestsApi = {
     form.append("file", file)
     return apiFetch<PrintRequest>(`${BASE}/${id}/document`, { method: "PUT", body: form })
   },
+
+  /** Printing rates used by the server, for the estimate shown before submitting. */
+  pricing: () => apiFetch<Pricing>(`${BASE}/pricing`),
+
+  /** Staff only (server returns 403 for students): mark Paid / back to Pending. */
+  setPayment: (id: number, payment_status: PaymentStatus): Promise<PrintRequest> =>
+    apiFetch<PrintRequest>(`${BASE}/${id}/payment`, { method: "PATCH", body: JSON.stringify({ payment_status }) }),
 
   /** Short-lived signed link, issued only after the server checks permission. */
   documentLink: (id: number) => apiFetch<DocumentLink>(`${BASE}/${id}/document`),

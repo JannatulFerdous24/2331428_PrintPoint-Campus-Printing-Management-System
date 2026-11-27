@@ -160,7 +160,7 @@ def test_01_target_is_printpoint_dev_with_production_style_engine(engine):
     assert engine.dialect.name == "postgresql"
     assert isinstance(engine.pool, NullPool)
     with engine.connect() as conn:
-        assert conn.execute(text("select version_num from alembic_version")).scalar() == "0003_owner_required"
+        assert conn.execute(text("select version_num from alembic_version")).scalar() == "0004_cost_and_payment"
 
 
 def test_02_signup_and_login_store_correct_postgres_types(client, engine):

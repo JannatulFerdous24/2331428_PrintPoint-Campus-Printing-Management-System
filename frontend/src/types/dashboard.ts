@@ -1,6 +1,6 @@
 // Types for documents, the staff queue and the admin dashboard (Prompts 8b, 8c, 9).
 // Re-exported from ./index, so pages import everything from "../types".
-import type { AdminUser, PrintType, RequestStatus } from "./index"
+import type { AdminUser, PaymentStatus, PrintType, RequestStatus } from "./index"
 
 /** Same limits as the server (backend/documents.py); the server re-checks every upload. */
 export const MAX_UPLOAD_BYTES = 4_000_000
@@ -25,6 +25,7 @@ export interface RequestQuery {
   q?: string
   status?: RequestStatus | ""
   print_type?: PrintType | ""
+  payment_status?: PaymentStatus | ""
   has_document?: "" | "true" | "false"
   created_from?: string
   created_to?: string

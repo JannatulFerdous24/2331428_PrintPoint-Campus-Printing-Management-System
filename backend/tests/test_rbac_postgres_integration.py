@@ -141,7 +141,7 @@ def cleanup(engine) -> dict:
 
 def test_01_target_is_dev_at_revision_0003(engine):
     with engine.connect() as conn:
-        assert conn.execute(text("select version_num from alembic_version")).scalar() == "0003_owner_required"
+        assert conn.execute(text("select version_num from alembic_version")).scalar() == "0004_cost_and_payment"
         assert conn.execute(text("select is_nullable from information_schema.columns where "
                                  "table_name='print_requests' and column_name='owner_id'")).scalar() == "NO"
 

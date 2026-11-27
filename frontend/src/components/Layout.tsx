@@ -2,6 +2,7 @@ import { useState } from "react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext"
 import { ROLE_LABELS } from "../types"
+import { ThemeToggle } from "./ThemeToggle"
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -39,6 +40,7 @@ export function Layout() {
             <NavLink to="/sessions">Sessions</NavLink>
           </nav>
           <div className="topbar-user">
+            <ThemeToggle />
             {user && (
               <span className="topbar-name" title={user.email}>
                 {user.full_name} <span className="role-chip">{ROLE_LABELS[user.role]}</span>

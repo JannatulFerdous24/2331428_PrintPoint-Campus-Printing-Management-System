@@ -15,12 +15,14 @@ from audit import log_event
 from auth.dependencies import as_utc
 from models import (
     VALID_TRANSITIONS,
+    PaymentStatus,
     PrintRequest,
     PrintRequestStatusHistory,
     PrintType,
     RequestStatus,
     User,
 )
+from pricing import calculate_cost
 from schemas import PrintRequestCreate, PrintRequestUpdate
 
 
@@ -32,6 +34,7 @@ def create_print_request(
     session: Session, data: PrintRequestCreate, owner_id: int, request: Optional[Request] = None
 ) -> PrintRequest:
     pr = PrintRequest(**data.model_dump(), owner_id=owner_id)
+    pr.total_cost = calculate_cost(pr.pages, pr.copies, pr.print_type)  # server-side price
     session.add(pr)
     session.flush()
     # First history entry: "created as Pending" (from_status = None).
@@ -64,6 +67,7 @@ def request_filters(
     created_to: Optional[datetime] = None,
     has_document: Optional[bool] = None,
     owner_id: Optional[int] = None,
+    payment_status: Optional[PaymentStatus] = None,
 ) -> list:
     """WHERE conditions shared by the list, the staff queue and the CSV export.
     visible_to=(user_id, group_ids) limits results to the user's own requests and
@@ -83,6 +87,8 @@ def request_filters(
         conds.append(PrintRequest.owner_id == owner_id)
     if print_type:
         conds.append(PrintRequest.print_type == print_type)
+    if payment_status:
+        conds.append(PrintRequest.payment_status == payment_status)
     if created_from:  # dates without a timezone are treated as UTC
         conds.append(PrintRequest.created_at >= as_utc(created_from))
     if created_to:
@@ -185,6 +191,8 @@ def update_print_request(
 
     for key, value in update_data.items():
         setattr(pr, key, value)
+    if {"pages", "copies", "print_type"} & update_data.keys():
+        pr.total_cost = calculate_cost(pr.pages, pr.copies, pr.print_type)
     if update_data:
         log_event(session, "request.update", request=request, actor_id=actor.id,
                   target_type="print_request", target_id=pr.id,
@@ -192,6 +200,29 @@ def update_print_request(
 
     pr.updated_at = _now()
     session.add(pr)
+    session.commit()
+    session.refresh(pr)
+    return pr
+
+
+def update_payment_status(
+    session: Session, pr: PrintRequest, new_status: PaymentStatus, actor: User,
+    request: Optional[Request] = None,
+) -> PrintRequest:
+    """Staff mark a request Paid (or back to Pending to correct a mistake). No real
+    payment gateway - this only records that the student paid at the counter."""
+    if new_status == PaymentStatus.paid and pr.status == RequestStatus.rejected:
+        raise HTTPException(status_code=409, detail="A rejected request cannot be marked as paid")
+    if new_status == pr.payment_status:
+        return pr
+    old = pr.payment_status
+    pr.payment_status = new_status
+    pr.paid_at = _now() if new_status == PaymentStatus.paid else None
+    pr.updated_at = _now()
+    session.add(pr)
+    log_event(session, "request.payment", request=request, actor_id=actor.id,
+              target_type="print_request", target_id=pr.id,
+              details={"from": old.value, "to": new_status.value, "amount": pr.total_cost})
     session.commit()
     session.refresh(pr)
     return pr

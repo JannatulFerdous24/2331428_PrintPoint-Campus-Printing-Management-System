@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 export function NotFoundPage() {
   return (
     <div className="auth-page">
+      <ThemeToggle floating />
       <div className="auth-card">
         <div className="auth-brand">🖨️ PrintPoint</div>
         <h2>Page not found</h2>

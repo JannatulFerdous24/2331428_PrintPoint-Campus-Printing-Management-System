@@ -3,7 +3,7 @@
 the Final Project's authorization rules from rbac.py:
 
   list    students: own + their groups' requests   admins: all
-          search/filters: q, status, print_type, group_id, created_from/to,
+          search/filters: q, status, print_type, payment_status, group_id, created_from/to,
           has_document, sort (newest|oldest); total in the X-Total-Count header
   read    owner, group members, admins              others: 404
   create  anyone; inside a group needs can_create
@@ -11,6 +11,8 @@ the Final Project's authorization rules from rbac.py:
           status: admins only (staff), valid transitions only,
                   rejecting requires a reason (5-500 characters)
   delete  request owner or group owner (admins use /api/admin moderation)
+  cost    total_cost = pages x copies x rate, always calculated on the server
+  payment PATCH /{id}/payment: staff (PAYMENT_UPDATE) mark Paid / Pending
   document  upload/replace (PUT): same rule as editing (Pending only)
             download link (GET): anyone who can view the request
 """
@@ -26,7 +28,8 @@ from audit import log_event
 from auth.dependencies import get_current_user
 from database import get_session
 from documents import MAX_UPLOAD_BYTES, extension_of, storage_key, validate_document
-from models import PrintRequest, PrintRequestStatusHistory, PrintType, RequestStatus, User
+from models import PaymentStatus, PrintRequest, PrintRequestStatusHistory, PrintType, RequestStatus, User
+from pricing import CURRENCY, RATES_PER_PAGE
 from rbac import (
     GroupPerm,
     Permission,
@@ -36,11 +39,14 @@ from rbac import (
     has_permission,
     load_group,
     request_permissions,
+    require_permission,
     visible_group_ids,
 )
 from schemas import (
     AssigneeUpdate,
     DocumentLink,
+    PaymentUpdate,
+    PricingRead,
     PrintRequestCreate,
     PrintRequestRead,
     PrintRequestUpdate,
@@ -72,9 +78,11 @@ def list_filters(
     created_from: Optional[datetime] = Query(default=None),
     created_to: Optional[datetime] = Query(default=None),
     has_document: Optional[bool] = Query(default=None),
+    payment_status: Optional[PaymentStatus] = Query(default=None),
 ) -> dict:
     return dict(q=q, status=status, print_type=print_type, group_id=group_id,
-                created_from=created_from, created_to=created_to, has_document=has_document)
+                created_from=created_from, created_to=created_to, has_document=has_document,
+                payment_status=payment_status)
 
 
 @router.post("", response_model=PrintRequestRead, status_code=201)
@@ -110,6 +118,12 @@ def list_print_requests(
     rows, total = crud.query_print_requests(session, conds, skip=skip, limit=limit, sort=sort)
     response.headers["X-Total-Count"] = str(total)
     return [to_read(session, user, pr) for pr in rows]
+
+
+@router.get("/pricing", response_model=PricingRead)
+def get_pricing():
+    """Rates the server uses, so the form can show the same estimate before submitting."""
+    return PricingRead(currency=CURRENCY, rates_per_page=RATES_PER_PAGE)
 
 
 @router.get("/{request_id}", response_model=PrintRequestRead)
@@ -157,6 +171,8 @@ def update_print_request(
     if field_changes and not perms["edit"]:
         if pr.status != RequestStatus.pending:
             raise forbidden("Only Pending requests can be edited")
+        if pr.payment_status == PaymentStatus.paid:
+            raise forbidden("Paid requests can no longer be edited")
         raise forbidden("You do not have permission to edit this request")
 
     pr = crud.update_print_request(session, pr, data, actor=user, request=request)
@@ -227,6 +243,19 @@ def document_link(
               target_type="print_request", target_id=pr.id)
     session.commit()
     return DocumentLink(url=url, expires_in=SIGNED_URL_SECONDS, filename=pr.original_filename or "document")
+
+
+@router.patch("/{request_id}/payment", response_model=PrintRequestRead)
+def set_payment_status(
+    request_id: int,
+    data: PaymentUpdate,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User = Depends(require_permission(Permission.PAYMENT_UPDATE)),  # staff only -> 403
+):
+    pr, _ = get_visible_request(session, user, request_id)
+    pr = crud.update_payment_status(session, pr, data.payment_status, actor=user, request=request)
+    return to_read(session, user, pr)
 
 
 @router.patch("/{request_id}/assignee", response_model=PrintRequestRead)

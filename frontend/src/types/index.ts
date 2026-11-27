@@ -4,6 +4,21 @@ export type RequestStatus = "Pending" | "Processing" | "Ready" | "Collected" | "
 
 export const PRINT_TYPES: PrintType[] = ["Black & White", "Color"]
 
+export type PaymentStatus = "Pending" | "Paid"
+export const PAYMENT_STATUSES: PaymentStatus[] = ["Pending", "Paid"]
+
+/** Rates come from the server (GET /api/print-requests/pricing); the server recalculates the cost. */
+export interface Pricing {
+  currency: string
+  rates_per_page: Record<PrintType, number>
+}
+
+export const MAX_PAGES = 1000
+
+export function formatTaka(amount: number): string {
+  return `Tk ${amount.toLocaleString("en-US")}`
+}
+
 export const REQUEST_STATUSES: RequestStatus[] = [
   "Pending",
   "Processing",
@@ -43,6 +58,11 @@ export interface PrintRequest {
   content_type?: string | null
   file_size_bytes?: number | null
   uploaded_at?: string | null
+  /** Pages in the document; total_cost (Taka) = pages x copies x rate, calculated by the server. */
+  pages?: number
+  total_cost?: number
+  payment_status?: PaymentStatus
+  paid_at?: string | null
   /** What the current user may do, computed by the server (backend/rbac.py). */
   permissions?: RequestPermissions
 }
@@ -53,12 +73,14 @@ export interface RequestPermissions {
   delete: boolean
   change_status: boolean
   assign: boolean
+  update_payment?: boolean
 }
 
 export interface CreatePrintRequestData {
   student_name: string
   document_name: string
   copies: number
+  pages: number
   print_type: PrintType
   notes?: string
   group_id?: number
@@ -68,6 +90,7 @@ export interface UpdatePrintRequestData {
   student_name?: string
   document_name?: string
   copies?: number
+  pages?: number
   print_type?: PrintType
   status?: RequestStatus
   notes?: string

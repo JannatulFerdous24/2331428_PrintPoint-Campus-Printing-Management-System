@@ -294,6 +294,8 @@ def test_permissions_field_tells_the_ui_what_is_allowed(client, people):
     alice, staff = people["alice"], people["admin1"]
     rid = create_request(client, alice)
     mine = client.get(f"/api/print-requests/{rid}", headers=alice.h).json()["permissions"]
-    assert mine == {"view": True, "edit": True, "delete": True, "change_status": False, "assign": False}
+    assert mine == {"view": True, "edit": True, "delete": True, "change_status": False, "assign": False,
+                    "update_payment": False}
     theirs = client.get(f"/api/print-requests/{rid}", headers=staff.h).json()["permissions"]
     assert theirs["change_status"] is True and theirs["edit"] is False and theirs["delete"] is False
+    assert theirs["update_payment"] is True

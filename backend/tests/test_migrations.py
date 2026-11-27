@@ -171,7 +171,7 @@ def test_0003_succeeds_when_every_request_has_an_owner(temp_db):
     with engine.begin() as conn:
         insert_user(conn, 1)
         insert_request(conn, 1)
-    command.upgrade(cfg, "head")
+    command.upgrade(cfg, "0003_owner_required")
     with engine.begin() as conn:
         assert conn.execute(sa.text("SELECT version_num FROM alembic_version")).scalar() == "0003_owner_required"
         with pytest.raises(sa.exc.IntegrityError):  # the database now refuses owner-less rows
@@ -225,3 +225,33 @@ def test_postgres_full_upgrade_enables_rls_on_every_table(monkeypatch):
     rls = set(re.findall(r"ALTER TABLE (\w+) ENABLE ROW LEVEL SECURITY", sql))
     assert created == NEW_TABLES | {"print_requests", "alembic_version"}
     assert rls == created, f"tables without RLS: {created - rls}"
+
+
+# ----------------------------------------------------------------- migration 0004
+
+def test_0004_adds_cost_columns_and_fills_cost_for_existing_rows(temp_db):
+    url, cfg = temp_db
+    command.upgrade(cfg, "0003_owner_required")
+    engine = sa.create_engine(url)
+    with engine.begin() as conn:
+        insert_user(conn, 1)
+        insert_request(conn, 1)  # 1 copy, Color, existing row before 0004
+    command.upgrade(cfg, "head")
+    with engine.connect() as conn:
+        row = conn.execute(sa.text(
+            "SELECT pages, total_cost, payment_status, paid_at FROM print_requests")).mappings().one()
+        count = conn.execute(sa.text("SELECT COUNT(*) FROM print_requests")).scalar()
+    engine.dispose()
+    assert count == 1                                   # nothing deleted
+    assert dict(row) == {"pages": 1, "total_cost": 10, "payment_status": "pending", "paid_at": None}
+
+
+def test_0004_postgres_sql_creates_type_and_only_backfills_cost(monkeypatch):
+    buffer = io.StringIO()
+    cfg = make_config("postgresql://offline:offline@offline.invalid/offline", monkeypatch, buffer)
+    command.upgrade(cfg, "0003_owner_required:0004_cost_and_payment", sql=True)
+    sql = buffer.getvalue()
+    assert "CREATE TYPE paymentstatus AS ENUM ('pending', 'paid')" in sql
+    assert sql.index("CREATE TYPE paymentstatus") < sql.index("ADD COLUMN payment_status")
+    assert not re.search(r"DELETE\s+FROM|DROP\s+TABLE|INSERT\s+INTO\s+print_requests", sql)
+    assert re.findall(r"UPDATE\s+(\w+)", sql) == ["print_requests", "alembic_version"]
