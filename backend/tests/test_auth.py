@@ -422,3 +422,14 @@ def test_cookies_are_always_secure_on_vercel(monkeypatch):
     monkeypatch.setenv("COOKIE_SECURE", "false")
     get_settings.cache_clear()
     assert get_settings().cookie_secure is True
+
+
+def test_refresh_without_any_cookie_means_no_session_not_an_error(client):
+    """First visit: no refresh cookie at all -> 204, no token, no cookie set (no 401 in the console).
+    A cookie that is sent but wrong is still rejected with 401 (see the tests above)."""
+    client.cookies.clear()
+    res = client.post("/api/auth/refresh", headers=XRW)
+    assert res.status_code == 204 and res.content == b""
+    assert "set-cookie" not in res.headers
+    assert client.post("/api/auth/refresh").status_code == 403          # CSRF header still required
+    assert refresh_with(client, "made-up-token").status_code == 401     # wrong cookie still rejected

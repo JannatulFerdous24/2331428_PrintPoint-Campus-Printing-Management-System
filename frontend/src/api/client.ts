@@ -81,7 +81,8 @@ export function refreshSession(): Promise<AuthResponse | null> {
       headers: { "X-Requested-With": "XMLHttpRequest" },
     })
       .then(async (res) => {
-        if (!res.ok) {
+        // 204 = no refresh cookie (visitor never logged in); any 4xx = session invalid.
+        if (!res.ok || res.status === 204) {
           accessToken = null
           return null
         }

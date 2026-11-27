@@ -95,10 +95,16 @@ def login(data: LoginRequest, request: Request, response: Response,
     return _token_response(response, user, access, expires_in, raw)
 
 
-@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(require_ajax_header)])
+@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(require_ajax_header)],
+             responses={204: {"description": "No refresh cookie sent: the visitor has no session"}})
 def refresh(request: Request, response: Response,
             pp_refresh: Optional[str] = Cookie(default=None),
             session: Session = Depends(get_session)):
+    if not pp_refresh:
+        # A visitor who never logged in: nothing to restore. Answer "no session" (204, no token)
+        # instead of 401 so the browser does not log an error on every first visit.
+        # Any cookie that IS sent but is invalid, expired, revoked or reused still gets 401 below.
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     try:
         user, access, expires_in, raw = service.refresh(session, pp_refresh, request)
     except HTTPException:
