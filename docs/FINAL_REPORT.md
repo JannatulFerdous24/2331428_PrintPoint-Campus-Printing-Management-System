@@ -46,6 +46,7 @@ PrintPoint is a web application that moves a university print shop online. Stude
 The mid project delivered anonymous print-request CRUD on SQLite. The final project added:
 
 - **JWT authentication with refresh and logout** — Argon2id + pepper password hashing, 15-minute access tokens, rotating httpOnly refresh cookie with reuse detection, session list and revoke.
+- **Refresh session handling** — A missing refresh cookie returns HTTP 204 No Content (guest/no session), while invalid, expired, revoked, or reused refresh cookies return HTTP 401 Unauthorized.
 - **Role-based access control** — one RBAC module (`backend/rbac.py`): roles `user`/`admin`, permission constants, ownership checks, group permissions, admin safety rules.
 - **Groups with fine-grained permissions** — per-member `can_create`, `can_edit`, `can_assign`; owner-only rename, delete and member management.
 - **Print workflow and documents** — `Pending → Processing → Ready → Collected` or `Pending → Rejected` (reason required), status history, private document storage with 60-second signed links.
