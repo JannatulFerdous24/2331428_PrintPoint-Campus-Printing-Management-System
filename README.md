@@ -7,7 +7,7 @@
 
 PrintPoint moves a university print shop online. Students upload a PDF or DOCX, choose pages, copies and black-&-white or colour, **see the price before submitting** and track the job until they collect it. Print-shop staff work from one digital queue, move jobs through a fixed workflow, record payment and administer the system from an admin dashboard. Teams can share print jobs through groups whose owner decides what each member may do.
 
-CSE309 Web Application & Internet — Final Project, Autumn 2026 · Student ID 2331428.
+CSE309 Web Application & Internet — Final Project, Autumn 2026 · Section 5 · Individual project · Student ID 2331428.
 
 > **Status:** complete and live. JWT authentication with refresh and logout, RBAC with ownership and group permissions, admin dashboard, audit log, printing cost and payment tracking, dark/light mode — deployed on Vercel with Supabase PostgreSQL.
 
@@ -23,14 +23,13 @@ CSE309 Web Application & Internet — Final Project, Autumn 2026 · Student ID 2
 | API base | https://2331428.vercel.app/api |
 | API docs (Swagger UI) | https://2331428.vercel.app/api/docs |
 | Health check | https://2331428.vercel.app/api/health |
-| Final report (Markdown) | [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
-| Final report (PDF, with screenshots) | [docs/FINAL_REPORT.pdf](docs/FINAL_REPORT.pdf) |
+| Final report | [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
 
 The live app is built from the `main` branch. Data is stored in a hosted **Supabase PostgreSQL** database and documents in a private **Supabase Storage** bucket, so everything survives restarts.
 
 ## 👥 Test accounts (for the instructor)
 
-Passwords are **not** in this repository — they are provided only in the submission form / submitted PDF.
+Passwords are **not** in this repository — they are provided only in the PDF report submitted through the course Google Form.
 
 | User ID (e-mail) | Role | What to try |
 |---|---|---|
@@ -144,7 +143,7 @@ frontend/src/
   api/               typed API clients (retry once on 401 after refresh)
   components/, pages/  student pages, staff queue, admin dashboard pages
   theme.ts           light/dark theme logic
-docs/                FINAL_REPORT.md, FINAL_REPORT.pdf, assets/screenshots/, mid-project PRD/SRS/TDD
+docs/                FINAL_REPORT.md (final report), mid-project PRD/SRS/TDD
 vercel.json          /api/* → FastAPI, everything else → Vite (SPA fallback to index.html)
 ```
 
@@ -281,9 +280,7 @@ Covered: signup rules, hashing, login, lockout, missing/invalid/tampered/expired
 
 | Document | Contents |
 |---|---|
-| [Final report (Markdown)](docs/FINAL_REPORT.md) | Executive summary, PRD, SRS, TDD, evidence, testing, limitations |
-| [Final report (PDF)](docs/FINAL_REPORT.pdf) | Same report, formatted, with screenshots of the live application |
-| [Screenshots](docs/assets/screenshots/) | Genuine captures of https://2331428.vercel.app |
+| [Final report](docs/FINAL_REPORT.md) | Executive summary, PRD, SRS, TDD, evidence, testing, deployment, limitations |
 | [PRD](docs/PRD.md) · [SRS](docs/SRS.md) · [TDD](docs/TDD.md) | Mid-project documents (kept for history) |
 
 ## 🩺 Troubleshooting

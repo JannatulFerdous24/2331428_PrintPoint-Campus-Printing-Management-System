@@ -7,8 +7,8 @@ CSE309 Web Application & Internet
 |---|---|
 | **Name** | Jannatul Ferdous |
 | **Student ID** | 2331428 |
-| **Section** | ____ |
-| **Team number** | ____ |
+| **Section** | 5 |
+| **Project type** | Individual |
 | **Project title** | PrintPoint — Campus Printing Management System |
 | **Vercel URL** | https://2331428.vercel.app |
 | **GitHub repository** | https://github.com/JannatulFerdous24/2331428_PrintPoint-Campus-Printing-Management-System |
@@ -16,7 +16,7 @@ CSE309 Web Application & Internet
 | **Semester** | Autumn 2026 |
 | **Date of submission** | 28 November 2026 |
 
-> **Note on credentials.** Test account user IDs and roles are listed in the README and in Appendix A. Passwords are never written in this Markdown file or anywhere in the repository; they are supplied only in the submitted PDF / submission form.
+> **Note on credentials and screenshots.** Test account user IDs and roles are listed in the README and in Appendix A. Passwords are never written in this Markdown file or anywhere in the repository. The screenshots of Part D and the test-account passwords are included only in the PDF version of this report, which is submitted through the course Google Form.
 
 ---
 
@@ -913,72 +913,92 @@ All screenshots were taken on the deployed site **https://2331428.vercel.app** o
 ### D1. User Side
 
 **S1 — Signup validation (FR-AUTH-02).** `/signup`: a 5-character password is rejected with the password rules.
-![S1: Signup page rejecting a weak password](assets/screenshots/S01_signup_validation.png)
+<!-- screenshot: S01_signup_validation -->
+*Screenshot S1 — included in the PDF report submitted through the course Google Form.*
 
 **S1b — Login error (FR-AUTH-10).** `/login`: a wrong password gives the generic message, without revealing whether the account exists.
-![S1b: Login page with generic invalid email or password message](assets/screenshots/S01b_login_error.png)
+<!-- screenshot: S01b_login_error -->
+*Screenshot S1b — included in the PDF report submitted through the course Google Form.*
 
 **S2 — A student's own requests with cost and payment (FR-RBAC-03, FR-DOM-01/03).** `/requests` as Demo Student One: only own and group requests are listed, with the server-calculated cost (e.g. 2 × 30 × Tk 2 = Tk 120) and Paid/Unpaid badge; Edit appears only for the Pending, unpaid request.
-![S2: Student print request list](assets/screenshots/S02_student_requests.png)
+<!-- screenshot: S02_student_requests -->
+*Screenshot S2 — included in the PDF report submitted through the course Google Form.*
 
 **S3 — Wrong current password rejected (FR-AUTH-12).** `/profile`: changing the password with an incorrect current password is refused.
-![S3: Profile page with current password incorrect](assets/screenshots/S03_profile_wrong_current_password.png)
+<!-- screenshot: S03_profile_wrong_current_password -->
+*Screenshot S3 — included in the PDF report submitted through the course Google Form.*
 
 **S4 — Sessions with revoke (FR-AUTH-11).** `/sessions`: every login of this account with *Revoke* and *Log out all other devices*.
-![S4: Active sessions list](assets/screenshots/S04_sessions.png)
+<!-- screenshot: S04_sessions -->
+*Screenshot S4 — included in the PDF report submitted through the course Google Form.*
 
 **S5 — Group members and permissions (FR-RBAC-04/05).** `/groups/1` as the owner: Demo Student Two can create and edit, Demo Student Three is view-only; owner-only rename/delete/add-member forms.
-![S5: Group page with member permissions](assets/screenshots/S05_group_members_permissions.png)
+<!-- screenshot: S05_group_members_permissions -->
+*Screenshot S5 — included in the PDF report submitted through the course Google Form.*
 
 **S6a — RBAC denial in the app (FR-RBAC-02).** `/admin` opened by a student shows *Access denied*.
-![S6a: Student sees access denied on admin page](assets/screenshots/S06a_student_admin_denied_ui.png)
+<!-- screenshot: S06a_student_admin_denied_ui -->
+*Screenshot S6a — included in the PDF report submitted through the course Google Form.*
 
 **S6b — RBAC denial by the API (FR-RBAC-02).** Live Swagger UI `/api/docs`, authorised with Demo Student One's token: `GET /api/admin/stats` returns **403** `"You do not have permission to perform this action"`.
-![S6b: Admin stats endpoint returns 403 for a student](assets/screenshots/S06b_student_admin_api_403.png)
+<!-- screenshot: S06b_student_admin_api_403 -->
+*Screenshot S6b — included in the PDF report submitted through the course Google Form.*
 
 ### D2. Security Behaviour
 
 **S7 — Expired access token rejected (FR-AUTH-09).** Live Swagger UI: `GET /api/users/me` with an access token whose `exp` is 5 minutes in the past returns **401** `"Access token expired"`.
-![S7: Expired token returns 401](assets/screenshots/S07_expired_token_401.png)
+<!-- screenshot: S07_expired_token_401 -->
+*Screenshot S7 — included in the PDF report submitted through the course Google Form.*
 
 **Banned user (FR-RBAC-07).** S11 shows an account in the *Banned* state (banned through the live admin UI); the rejection of a banned user's login and next request is covered by `test_auth.py`/`test_admin_dashboard.py` and the live check (D-limitations below).
 
 ### D3. Admin Dashboard
 
 **S10 — Statistics and security view (FR-ADM-01/08).** `/admin` as Demo Staff One: totals, requests by status and failed logins grouped by IP (masked) and by account.
-![S10: Admin dashboard with statistics and failed logins](assets/screenshots/S10_admin_dashboard.png)
+<!-- screenshot: S10_admin_dashboard -->
+*Screenshot S10 — included in the PDF report submitted through the course Google Form.*
 
 **S11 — Users list (FR-ADM-02/04, FR-RBAC-06).** `/admin/users`: search, role and status filters, bulk selection, a banned account with *Unban*, and disabled *Ban* buttons for admins.
-![S11: Admin users list](assets/screenshots/S11_admin_users.png)
+<!-- screenshot: S11_admin_users -->
+*Screenshot S11 — included in the PDF report submitted through the course Google Form.*
 
 **S12 — User detail (FR-ADM-03).** `/admin/users/{id}` for Demo Student One: profile, requests, groups with role, active sessions and recent activity.
-![S12: Admin user detail](assets/screenshots/S12_admin_user_detail.png)
+<!-- screenshot: S12_admin_user_detail -->
+*Screenshot S12 — included in the PDF report submitted through the course Google Form.*
 
 **S13 — Admin cannot ban another admin (FR-RBAC-06).** `/admin/users/{id}` for Demo Staff Two viewed by Demo Staff One: the *Ban* button is disabled; the API also returns 403.
-![S13: Ban disabled for another admin](assets/screenshots/S13_admin_cannot_ban_admin.png)
+<!-- screenshot: S13_admin_cannot_ban_admin -->
+*Screenshot S13 — included in the PDF report submitted through the course Google Form.*
 
 **S14a — All student groups (FR-ADM-06).** `/admin/groups`: every group with owner, member and request counts, search/filter, View/Delete and bulk selection.
-![S14a: Admin all groups list](assets/screenshots/S14a_admin_all_groups.png)
+<!-- screenshot: S14a_admin_all_groups -->
+*Screenshot S14a — included in the PDF report submitted through the course Google Form.*
 
 **S14b — Group detail for moderation (FR-ADM-06, FR-RBAC-08).** `/admin/groups/1`: owner, each member's Create/Edit/Assign permissions and the group's requests.
-![S14b: Admin group detail](assets/screenshots/S14b_admin_group_detail.png)
+<!-- screenshot: S14b_admin_group_detail -->
+*Screenshot S14b — included in the PDF report submitted through the course Google Form.*
 
 **S14c — Content moderation (FR-ADM-07).** `/admin/moderation`: all print requests with search, status filter and bulk delete.
-![S14c: Moderation of print requests](assets/screenshots/S14c_moderation_requests.png)
+<!-- screenshot: S14c_moderation_requests -->
+*Screenshot S14c — included in the PDF report submitted through the course Google Form.*
 
 **S15 — Activity / audit log (FR-ADM-08/10).** `/admin/audit`: filters and the events produced by the steps above (logins, failed login, failed password change), IPs masked.
-![S15: Audit log](assets/screenshots/S15_audit_log.png)
+<!-- screenshot: S15_audit_log -->
+*Screenshot S15 — included in the PDF report submitted through the course Google Form.*
 
 **S23 — Staff queue with cost and payment (FR-DOM-03/04/06).** `/staff/queue`: status tabs with counts, filters (type, payment, file, dates), cost and payment status.
-![S23: Staff queue](assets/screenshots/S23_staff_queue_cost_payment.png)
+<!-- screenshot: S23_staff_queue_cost_payment -->
+*Screenshot S23 — included in the PDF report submitted through the course Google Form.*
 
 **S22 — Dark mode (FR-DOM-10).** `/requests` after clicking the theme toggle.
-![S22: Dark mode](assets/screenshots/S22_dark_mode.png)
+<!-- screenshot: S22_dark_mode -->
+*Screenshot S22 — included in the PDF report submitted through the course Google Form.*
 
 ### D4. Deployment
 
 **S20 — Live API documentation.** `/api/docs` on the production domain.
-![S20: Live API docs](assets/screenshots/S20_api_docs.png)
+<!-- screenshot: S20_api_docs -->
+*Screenshot S20 — included in the PDF report submitted through the course Google Form.*
 
 The Vercel dashboard (S18/S19) was not captured because no browser session is logged in to Vercel on the build machine. Equivalent evidence was collected with the authenticated Vercel CLI: `vercel ls --environment production` shows the production deployment as **Ready** and aliased to `https://2331428.vercel.app`, and `vercel env ls production` lists exactly the ten variable names of Table 26 with values shown as *Hidden*.
 
@@ -1062,6 +1082,7 @@ cd ../frontend && npm test                      # frontend tests
 | | `c6f02a6` | Printing cost and payment tracking, dark/light mode |
 | | `e265a6d` | Final report v1; SPA deep-link fix on Vercel |
 | | `9955bff` | Admin group management (All Groups page, group detail, filters) |
+| | `d883d9c` | Final report (PRD/SRS/TDD), README reorganisation |
 | `main` | fast-forwarded from the feature branch | Production deployment source |
 
 **Work timeline and attribution.** Single-member project. October 2026: mid project (CRUD, SQLite, Vercel). November 2026: authentication and RBAC (Supabase setup, migrations 0002–0003), workflows and documents, admin dashboard (viva on 26 Nov), then cost/payment, theme, production deployment and documentation (27 Nov). All commits are authored by the GitHub account JannatulFerdous24; AI assistance is declared in E5.

@@ -23,3 +23,7 @@ frontend/dist/
 .vercel
 .env*
 !.env.example
+
+# Submission-only assets (PDF is uploaded via Google Form; screenshots live in the PDF)
+docs/FINAL_REPORT.pdf
+docs/assets/
