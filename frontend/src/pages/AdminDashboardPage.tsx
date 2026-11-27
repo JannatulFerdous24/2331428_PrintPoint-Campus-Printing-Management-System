@@ -24,7 +24,7 @@ export function AdminDashboardPage() {
     ["Total users", stats?.total_users, "/admin/users"],
     ["Banned users", stats?.banned_users, "/admin/users"],
     ["Print requests", stats?.total_requests, "/staff/queue"],
-    ["Groups", stats?.total_groups, "/admin/moderation"],
+    ["Groups", stats?.total_groups, "/admin/groups"],
     ["New users (7 days)", stats?.new_users_7d],
     ["New requests (7 days)", stats?.new_requests_7d],
     ["Failed logins (24 h)", stats?.failed_logins_24h, "/admin/audit"],

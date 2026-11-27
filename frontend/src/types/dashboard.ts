@@ -81,6 +81,29 @@ export interface AdminGroup {
   request_count: number
 }
 
+export interface AdminGroupMember {
+  user_id: number
+  email: string
+  full_name: string
+  is_owner: boolean
+  can_create: boolean
+  can_edit: boolean
+  can_assign: boolean
+  joined_at: string
+}
+
+export interface AdminGroupDetail {
+  id: number
+  name: string
+  description: string | null
+  created_at: string
+  updated_at: string
+  owner: { id: number; email: string; full_name: string } | null
+  members: AdminGroupMember[]
+  request_count: number
+  requests: { id: number; document_name: string; status: string; owner_id: number; created_at: string }[]
+}
+
 export interface BulkResult {
   done: number[]
   skipped: { id: number; reason: string }[]

@@ -308,14 +308,22 @@ def change_role(user_id: int, data: RoleChange, request: Request, session: Sessi
 
 @router.get("/groups")
 def list_all_groups(response: Response, q: Optional[str] = Query(default=None, max_length=100),
+                    owner_id: Optional[int] = Query(default=None, ge=1),
+                    has_requests: Optional[bool] = None,
                     skip: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=200),
                     session: Session = Depends(get_session),
                     admin: User = Depends(require_permission(Permission.MODERATE_CONTENT))):
+    """Every group in the system (any owner), for moderation. Admins are usually not members."""
     conds = []
     if q and q.strip():
         like = f"%{q.strip()}%"
         conds.append(or_(Group.name.ilike(like), Group.description.ilike(like),
                          Group.owner_id.in_(select(User.id).where(User.email.ilike(like)))))
+    if owner_id is not None:
+        conds.append(Group.owner_id == owner_id)
+    if has_requests is not None:
+        with_requests = Group.id.in_(select(PrintRequest.group_id).where(PrintRequest.group_id.is_not(None)))
+        conds.append(with_requests if has_requests else ~with_requests)
     response.headers["X-Total-Count"] = str(_count(session, Group, *conds))
     rows = session.exec(select(Group, User.email).join(User, User.id == Group.owner_id).where(*conds)
                         .order_by(Group.created_at.desc(), Group.id.desc()).offset(skip).limit(limit)).all()
@@ -324,6 +332,33 @@ def list_all_groups(response: Response, q: Optional[str] = Query(default=None, m
              "member_count": _count(session, GroupMember, GroupMember.group_id == g.id),
              "request_count": _count(session, PrintRequest, PrintRequest.group_id == g.id)}
             for g, email in rows]
+
+
+@router.get("/groups/{group_id}")
+def group_detail(group_id: int, session: Session = Depends(get_session),
+                 admin: User = Depends(require_permission(Permission.MODERATE_CONTENT))):
+    """Read-only moderation view of one group: owner, members with their permissions, requests.
+    Viewing gives the admin no group powers (those still come only from membership)."""
+    group = session.get(Group, group_id)
+    if group is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Group {group_id} not found")
+    owner = session.get(User, group.owner_id)
+    members = session.exec(select(GroupMember, User).join(User, User.id == GroupMember.user_id)
+                           .where(GroupMember.group_id == group.id).order_by(GroupMember.joined_at)).all()
+    requests = session.exec(select(PrintRequest).where(PrintRequest.group_id == group.id)
+                            .order_by(PrintRequest.created_at.desc()).limit(50)).all()
+    return {
+        "id": group.id, "name": group.name, "description": group.description,
+        "created_at": group.created_at, "updated_at": group.updated_at,
+        "owner": {"id": owner.id, "email": owner.email, "full_name": owner.full_name} if owner else None,
+        "members": [{"user_id": u.id, "email": u.email, "full_name": u.full_name,
+                     "is_owner": u.id == group.owner_id, "can_create": m.can_create,
+                     "can_edit": m.can_edit, "can_assign": m.can_assign, "joined_at": m.joined_at}
+                    for m, u in members],
+        "request_count": _count(session, PrintRequest, PrintRequest.group_id == group.id),
+        "requests": [{"id": r.id, "document_name": r.document_name, "status": r.status.value,
+                      "owner_id": r.owner_id, "created_at": r.created_at} for r in requests],
+    }
 
 
 def _moderate_request(session, pr, admin, request) -> Optional[str]:

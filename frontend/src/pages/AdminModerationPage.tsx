@@ -1,4 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { adminApi } from "../api/admin"
 import { errorText } from "../api/client"
 import { printRequestsApi } from "../api/printRequests"
@@ -11,8 +12,8 @@ const LIMIT = 20
 type Tab = "requests" | "groups"
 
 /** Content moderation: list/search all print requests and groups, delete one or many (audited). */
-export function AdminModerationPage() {
-  const [tab, setTab] = useState<Tab>("requests")
+export function AdminModerationPage({ initialTab = "requests" }: { initialTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [q, setQ] = useState("")
   const [status, setStatus] = useState("")
   const [applied, setApplied] = useState({ q: "", status: "" })
@@ -35,7 +36,7 @@ export function AdminModerationPage() {
         setRequests(page.items)
         setTotal(page.total)
       } else {
-        const page = await adminApi.groups({ q: applied.q, skip, limit: LIMIT })
+        const page = await adminApi.groups({ q: applied.q, has_requests: applied.status === "" ? undefined : applied.status === "with", skip, limit: LIMIT })
         setGroups(page.items)
         setTotal(page.total)
       }
@@ -99,7 +100,8 @@ export function AdminModerationPage() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Content moderation</h1>
+      <h1 className="page-title">{initialTab === "groups" ? "All groups" : "Content moderation"}</h1>
+      {initialTab === "groups" && <p className="muted">Every group created by any student. Open a group to see its members and their permissions.</p>}
       <p className="muted">Deleting here is a privileged admin action and is recorded in the audit log.</p>
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-error" role="alert">{error}</div>}
@@ -116,6 +118,13 @@ export function AdminModerationPage() {
           <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Any status</option>
             {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
+        {tab === "groups" && (
+          <select aria-label="Group requests" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All groups</option>
+            <option value="with">With print requests</option>
+            <option value="without">Without print requests</option>
           </select>
         )}
         <button className="btn btn-primary">Search</button>
@@ -152,9 +161,9 @@ export function AdminModerationPage() {
         <div className="table-wrapper"><table>
           <thead><tr>{headCheck}<th>#ID</th><th>Name</th><th>Owner</th><th>Members</th><th>Requests</th><th>Created</th><th></th></tr></thead>
           <tbody>{groups.map((g) => (
-            <tr key={g.id}>{rowCheck(g.id)}<td>#{g.id}</td><td>{g.name}</td><td>{g.owner_email}</td><td>{g.member_count}</td>
+            <tr key={g.id}>{rowCheck(g.id)}<td>#{g.id}</td><td><Link to={`/admin/groups/${g.id}`}>{g.name}</Link></td><td>{g.owner_email}</td><td>{g.member_count}</td>
               <td>{g.request_count}</td><td>{new Date(g.created_at).toLocaleDateString()}</td>
-              <td><button className="btn btn-sm btn-danger" onClick={() => setConfirm([g.id])}>Delete</button></td></tr>
+              <td className="nowrap"><Link className="btn btn-sm btn-secondary" to={`/admin/groups/${g.id}`}>View</Link>{" "}<button className="btn btn-sm btn-danger" onClick={() => setConfirm([g.id])}>Delete</button></td></tr>
           ))}</tbody>
         </table></div>
       )}

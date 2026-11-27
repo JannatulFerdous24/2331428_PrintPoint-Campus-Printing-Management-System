@@ -63,7 +63,7 @@ def req(client, actor, **kw):
     return res.json()["id"]
 
 
-ADMIN_GETS = ["/api/admin/stats", "/api/admin/users", "/api/admin/users/1", "/api/admin/groups",
+ADMIN_GETS = ["/api/admin/stats", "/api/admin/users", "/api/admin/users/1", "/api/admin/groups", "/api/admin/groups/1",
               "/api/admin/audit-logs", "/api/admin/security/failed-logins", "/api/admin/export/users.csv",
               "/api/admin/export/print-requests.csv", "/api/admin/export/audit-logs.csv"]
 ADMIN_POSTS = [("/api/admin/users/bulk-ban", {"user_ids": [1], "reason": "abc"}),
@@ -228,3 +228,65 @@ def test_csv_exports_respect_filters_and_are_audited(client, session, people):
     exports = session.exec(select(AuditLog).where(AuditLog.action == "data.export")).all()
     assert [e.target_type for e in exports] == ["users", "print-requests", "audit-logs"]
     assert exports[1].details == {"rows": 1, "filters": {"q": "alice@uni"}}
+
+
+# ------------------------------------------------- admin group management
+
+def make_group(client, owner, name, members=()):
+    res = client.post("/api/groups", headers=owner.h, json={"name": name})
+    assert res.status_code == 201, res.text
+    gid = res.json()["id"]
+    for actor, flags in members:
+        r = client.post(f"/api/groups/{gid}/members", headers=owner.h, json={"email": actor.email, **flags})
+        assert r.status_code == 201, r.text
+    return gid
+
+
+def test_admin_sees_groups_of_every_student_with_details(client, people):
+    alice, bob, admin = people["alice"], people["bob"], people["admin1"]
+    ga = make_group(client, alice, "Alice Team", [(bob, {"can_create": True})])
+    gb = make_group(client, bob, "Bob Club")
+    req(client, alice, group_id=ga)
+
+    res = client.get("/api/admin/groups", headers=admin.h)
+    assert res.status_code == 200 and res.headers["X-Total-Count"] == "2"
+    assert {(g["name"], g["owner_email"]) for g in res.json()} == {("Alice Team", alice.email), ("Bob Club", bob.email)}
+    assert client.get("/api/admin/stats", headers=admin.h).json()["total_groups"] == 2
+
+    assert [g["id"] for g in client.get(f"/api/admin/groups?owner_id={bob.id}", headers=admin.h).json()] == [gb]
+    assert [g["id"] for g in client.get("/api/admin/groups?has_requests=true", headers=admin.h).json()] == [ga]
+    assert [g["id"] for g in client.get("/api/admin/groups?has_requests=false", headers=admin.h).json()] == [gb]
+
+    d = client.get(f"/api/admin/groups/{ga}", headers=admin.h).json()
+    assert d["owner"]["email"] == alice.email and d["request_count"] == 1
+    bob_row = next(m for m in d["members"] if m["email"] == bob.email)
+    assert (bob_row["can_create"], bob_row["can_edit"], bob_row["can_assign"], bob_row["is_owner"]) == (True, False, False, False)
+    assert client.get("/api/admin/groups/9999", headers=admin.h).status_code == 404
+
+    detail = client.get(f"/api/admin/users/{bob.id}", headers=admin.h).json()
+    assert {(g["name"], g["role"]) for g in detail["groups"]} == {("Alice Team", "member"), ("Bob Club", "owner")}
+
+
+def test_admin_view_gives_no_group_powers_and_students_are_refused(client, people):
+    alice, bob, admin = people["alice"], people["bob"], people["admin1"]
+    gid = make_group(client, alice, "Private Team")
+    assert client.get(f"/api/admin/groups/{gid}", headers=bob.h).status_code == 403
+    assert client.get(f"/api/admin/groups/{gid}", headers=alice.h).status_code == 403
+    assert client.get("/api/admin/groups", headers=alice.h).status_code == 403
+    # moderation view does not make the admin a member: member-only routes still refuse
+    assert client.get(f"/api/admin/groups/{gid}", headers=admin.h).status_code == 200
+    assert client.patch(f"/api/groups/{gid}", headers=admin.h, json={"name": "Renamed"}).status_code in (403, 404)
+    assert client.post("/api/print-requests", headers=admin.h, json={**REQ, "group_id": gid}).status_code in (403, 404)
+
+
+def test_admin_deletes_and_bulk_deletes_student_groups_with_audit(client, session, people):
+    alice, bob, admin = people["alice"], people["bob"], people["admin1"]
+    g1, g2, g3 = make_group(client, alice, "G1"), make_group(client, bob, "G2"), make_group(client, bob, "G3")
+    rid = req(client, alice, group_id=g1)
+    assert client.delete(f"/api/admin/groups/{g1}", headers=admin.h).status_code == 204
+    assert session.get(PrintRequest, rid).group_id is None  # request kept, detached
+    r = client.post("/api/admin/groups/bulk-delete", headers=admin.h, json={"ids": [g2, g3]})
+    assert r.status_code == 200 and sorted(r.json()["done"]) == [g2, g3]
+    assert client.get("/api/admin/groups", headers=admin.h).json() == []
+    logs = session.exec(select(AuditLog).where(AuditLog.action == "moderation.group_delete")).all()
+    assert sorted(int(x.target_id) for x in logs) == [g1, g2, g3]

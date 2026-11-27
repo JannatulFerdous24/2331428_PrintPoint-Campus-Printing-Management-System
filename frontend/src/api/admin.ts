@@ -1,5 +1,6 @@
 import type {
   AdminGroup,
+  AdminGroupDetail,
   AdminStats,
   AdminUser,
   AdminUserDetail,
@@ -30,6 +31,7 @@ export const adminApi = {
   bulkUnban: (ids: number[]) => post<BulkResult>("/api/admin/users/bulk-unban", { user_ids: ids }),
 
   groups: (params: Params = {}) => apiPage<AdminGroup>(`/api/admin/groups${queryString(params)}`),
+  group: (id: number) => apiFetch<AdminGroupDetail>(`/api/admin/groups/${id}`),
   deleteRequest: (id: number) => apiFetch<void>(`/api/admin/print-requests/${id}`, { method: "DELETE" }),
   deleteGroup: (id: number) => apiFetch<void>(`/api/admin/groups/${id}`, { method: "DELETE" }),
   bulkDeleteRequests: (ids: number[]) => post<BulkResult>("/api/admin/print-requests/bulk-delete", { ids }),

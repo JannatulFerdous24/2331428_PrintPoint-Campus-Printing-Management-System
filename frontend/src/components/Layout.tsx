@@ -28,10 +28,11 @@ export function Layout() {
               </>
             )}
             <NavLink to="/requests">{user?.role === "admin" ? "All Requests" : "My Requests"}</NavLink>
-            <NavLink to="/groups">Groups</NavLink>
+            <NavLink to="/groups">{user?.role === "admin" ? "My Groups" : "Groups"}</NavLink>
             {user?.role === "admin" && (
               <>
                 <NavLink to="/admin/users">Users</NavLink>
+                <NavLink to="/admin/groups">All Groups</NavLink>
                 <NavLink to="/admin/moderation">Moderation</NavLink>
                 <NavLink to="/admin/audit">Audit Log</NavLink>
               </>

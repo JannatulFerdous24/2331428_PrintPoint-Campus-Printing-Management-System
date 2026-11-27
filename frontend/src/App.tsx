@@ -4,6 +4,7 @@ import { GuestOnly, RequireAdmin, RequireAuth } from "./auth/guards"
 import { Layout } from "./components/Layout"
 import { AdminAuditPage } from "./pages/AdminAuditPage"
 import { AdminDashboardPage } from "./pages/AdminDashboardPage"
+import { AdminGroupDetailPage } from "./pages/AdminGroupDetailPage"
 import { AdminModerationPage } from "./pages/AdminModerationPage"
 import { AdminUserDetailPage } from "./pages/AdminUserDetailPage"
 import { AdminUsersPage } from "./pages/AdminUsersPage"
@@ -41,7 +42,9 @@ export default function App() {
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
-                <Route path="/admin/moderation" element={<AdminModerationPage />} />
+                <Route path="/admin/moderation" element={<AdminModerationPage key="moderation" />} />
+                <Route path="/admin/groups" element={<AdminModerationPage key="groups" initialTab="groups" />} />
+                <Route path="/admin/groups/:groupId" element={<AdminGroupDetailPage />} />
                 <Route path="/admin/audit" element={<AdminAuditPage />} />
               </Route>
             </Route>

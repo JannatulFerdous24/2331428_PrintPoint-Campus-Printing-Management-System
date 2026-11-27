@@ -116,7 +116,7 @@ export function AdminUserDetailPage() {
       <h2 className="spaced">Groups</h2>
       {d.groups.length === 0 ? <p className="empty-state">Not in any group.</p> : (
         <ul>{d.groups.map((g) => (
-          <li key={g.id}>{g.name} — {g.role === "owner" ? "owner" : `member (${[g.can_create && "create", g.can_edit && "edit", g.can_assign && "assign"].filter(Boolean).join(", ") || "view only"})`}</li>
+          <li key={g.id}><Link to={`/admin/groups/${g.id}`}>{g.name}</Link> — {g.role === "owner" ? "owner" : `member (${[g.can_create && "create", g.can_edit && "edit", g.can_assign && "assign"].filter(Boolean).join(", ") || "view only"})`}</li>
         ))}</ul>
       )}
 
