@@ -16,9 +16,6 @@ CSE309 Web Application & Internet
 | **Semester** | Autumn 2026 |
 | **Date of submission** | 28 November 2026 |
 
-> **Note on credentials and screenshots.** Test account user IDs and roles are listed in the README and in Appendix A. Passwords are never written in this Markdown file or anywhere in the repository. The screenshots of Part D and the test-account passwords are included only in the PDF version of this report, which is submitted through the course Google Form.
-
----
 
 ## Table of Contents
 
